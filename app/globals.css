@@ -1,0 +1,52 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #F8FAFC;
+  --accent1: #D9EAFD;
+  --accent2: #BCCCDC;
+  --accent3: #9AA6B2;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--accent3);
+}
+
+/* Message formatting styles */
+.prose p {
+  margin-bottom: 0.75rem;
+}
+
+.prose strong {
+  font-weight: 600;
+}
+
+.prose ul, .prose ol {
+  padding-left: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.prose ul li, .prose ol li {
+  margin-bottom: 0.25rem;
+}
+
+.chat-message-system {
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+
+/* Custom animations */
+@keyframes bounce-horizontal {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(25%);
+  }
+}
+
+.bounce-horizontal {
+  animation: bounce-horizontal 1.5s infinite;
+} 
