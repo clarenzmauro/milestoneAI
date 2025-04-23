@@ -1,0 +1,60 @@
+/* Basic Reset */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.5;
+  background-color: #f8f9fa; /* Light grey background */
+  color: #212529; /* Dark text color */
+}
+
+/* Explicitly set default styles for h1 to address browser warning */
+h1 {
+  font-size: 2em; /* Standard default size */
+  margin-top: 0.67em; /* Standard default margin */
+  margin-bottom: 0.67em;
+  margin-left: 0;
+  margin-right: 0;
+  font-weight: bold; /* Standard default weight */
+}
+
+/* Remove default list styles */
+ul,
+ol {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* Remove default anchor styles */
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* Basic heading styles (can be customized later) */
+h2, h3, h4, h5, h6 {
+  margin: 0;
+  font-weight: 600; /* Semi-bold headings */
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}

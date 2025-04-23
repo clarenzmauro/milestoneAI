@@ -1,0 +1,251 @@
+/* src/components/modals/SavedPlansModal.module.css */
+
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6); /* Darker overlay */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modalContent {
+  background-color: var(--background-color, #fff);
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  max-height: 80vh; /* Limit height */
+  display: flex;
+  flex-direction: column;
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px; /* Padding below header */
+  border: none;
+}
+
+/* Renamed from modalTitle in previous state? Use h2 directly */
+.modalHeader h2 {
+  margin: 0;
+  color: var(--text-color);
+  font-size: 1.3rem;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  font-size: 1.8rem; /* Larger close icon */
+  cursor: pointer;
+  color: var(--text-light);
+  padding: 0 5px; /* Padding for easier clicking */
+  line-height: 1;
+}
+
+.closeButton:hover {
+  color: var(--text-color);
+}
+
+.loadingState,
+.errorState {
+  text-align: center;
+  padding: 40px 20px; /* More padding */
+  color: var(--text-light);
+  font-style: italic;
+  font-size: 1.1em;
+}
+
+.errorState {
+  color: var(--error-color);
+  font-style: normal;
+  font-weight: 500; /* Less bold */
+}
+
+/* Assuming the TSX uses plansList or ul directly */
+.plansList {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 10px 0; /* Space below list */
+}
+
+.plansListContainer {
+  overflow-y: auto; /* Enable scroll if content overflows */
+  margin-top: 1rem; 
+  flex-grow: 1; /* Allow container to take remaining space */
+}
+
+.goalGroup {
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color-light, #eee); /* Separator */
+  padding-bottom: 0.5rem; /* Reduced padding */
+}
+
+.goalGroup:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.goalGroupHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer; /* Indicate it's clickable */
+  padding: 0.5rem 0; /* Add some padding */
+  transition: background-color 0.2s ease; /* Subtle hover effect */
+}
+
+.goalTitle {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600; /* Slightly bolder title */
+  flex-grow: 1; /* Allow title to take available space */
+  margin-right: 1rem; /* Space before button */
+  color: var(--text-primary, #333);
+}
+
+.goalHeaderButtons {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem; /* Space between buttons */
+  flex-shrink: 0; /* Prevent container from shrinking */
+}
+
+.toggleButton {
+  background: none;
+  border: 1px solid var(--border-color, #ccc);
+  color: var(--text-secondary, #555);
+  cursor: pointer;
+  padding: 0.1rem 0.5rem;
+  font-size: 1.2rem; /* Make +/- bigger */
+  line-height: 1;
+  border-radius: 4px;
+  min-width: 28px; /* Ensure minimum size */
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+  flex-shrink: 0; /* Prevent button from shrinking */
+}
+
+.toggleButton:hover {
+  background-color: var(--background-secondary, #f0f0f0);
+  border-color: var(--border-color-dark, #bbb);
+}
+
+.deleteAllButton {
+  padding: 0.2rem 0.6rem; /* Slightly different padding */
+  font-size: 0.9rem;
+  margin-right: 0.2rem; /* Small space before collapse button */
+}
+
+.versionList {
+  list-style: none; /* Remove default bullet points */
+  padding-left: 1rem; /* Indent the versions */
+  margin-top: 0.5rem;
+  margin-bottom: 0;
+  /* Animation handled by conditional rendering, could add transition if needed */
+}
+
+.planItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  margin-bottom: 12px; /* Space between items */
+  border: 1px solid var(--border-light, #e0e0e0);
+  border-radius: 6px;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.planItem:hover {
+  background-color: var(--background-light, #f8f8f8);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+.planDetails {
+  flex-grow: 1;
+  margin-right: 1rem; /* Space between details and buttons */
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.planDetails p {
+  margin: 0 0 4px 0;
+  font-weight: 500;
+  color: var(--text-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis; /* Add ellipsis for long goals */
+}
+
+.planDetails span {
+  display: block; /* Ensure timestamp is on its own line if needed */
+  font-size: 0.8em;
+  color: var(--text-light);
+  font-style: italic; /* Italicize the date */
+}
+
+.planActions {
+  display: flex;
+  align-items: center; /* Align buttons vertically */
+  gap: 8px; /* Space between buttons */
+  flex-shrink: 0;
+  margin-left: 0.5rem;
+}
+
+.loadButton { /* Separate load button style */
+  background-color: var(--accent-color, #007bff); /* Use a primary theme color or default blue */
+  color: var(--button-text-color, #ffffff); /* Ensure text is light/white for contrast */
+  border: none; 
+  margin-right: 8px; /* Keep space between buttons */
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.2s ease, opacity 0.2s ease;
+  font-weight: 500;
+}
+
+.loadButton:hover {
+  background-color: var(--accent-color-dark, #0056b3); /* Darken on hover */
+  opacity: 0.9;
+}
+
+.deleteButton { /* Keep delete button specific styles */
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  background-color: var(--danger-color, #dc3545);
+  color: var(--button-text-color, #fff);
+  border: 1px solid var(--danger-color-lighter, #f7cac9);
+}
+
+.deleteButton:hover { /* Hover for delete */
+  background-color: var(--danger-color-dark, #c82333);
+  opacity: 0.9;
+}
+
+.loadButton:disabled,
+.deleteButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed; 
+  background-color: var(--button-disabled-bg, #ccc);
+  border: none;
+}
+
+.loadingState,
+.errorState {
+  text-align: center;
+  padding: 1rem;
+  color: var(--text-secondary);
+}
+
+.errorState {
+  color: var(--error-color);
+  font-style: normal;
+  font-weight: 500; /* Less bold */
+}

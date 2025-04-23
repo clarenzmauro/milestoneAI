@@ -1,0 +1,73 @@
+/* src/components/sidebar/PlanModeUI.module.css */
+
+.planContainer {
+  padding: 15px;
+  border-top: 1px solid var(--border-light);
+  margin-top: 10px;
+  font-size: 0.9em;
+}
+
+.loading,
+.error,
+.noPlan {
+  padding: 15px;
+  text-align: center;
+  color: var(--text-light);
+  font-style: italic;
+}
+
+.error {
+  color: var(--error-color);
+  font-style: normal;
+}
+
+.planActions {
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  gap: 10px; /* Space between button and message */
+  flex-wrap: wrap; /* Allow message to wrap if needed */
+}
+
+.saveButton {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.saveButton:hover {
+  background-color: var(--primary-dark);
+}
+
+.saveButton:disabled {
+  background-color: var(--button-disabled-bg);
+  color: var(--button-disabled-text);
+  cursor: not-allowed;
+}
+
+.saveMessage {
+  font-size: 0.85em;
+  color: var(--text-light);
+}
+
+.saveMessage[data-error="true"] {
+  color: var(--error-color);
+}
+
+/* Add styles for plan display elements if needed */
+.planContainer h3 {
+  margin-top: 0;
+  margin-bottom: 8px;
+  color: var(--text-color);
+}
+
+.planContainer p {
+  margin-top: 0;
+  margin-bottom: 15px;
+  color: var(--text-light);
+  line-height: 1.4;
+}
