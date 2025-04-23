@@ -13,7 +13,7 @@ MilestoneAI leverages AI to break down large goals into manageable 90-day plans,
 *   **AI:** Gemini 2.0 flash (via user key from requesty.ai)
 *   **Front-end:** React
 *   **Back-end:** Node.js (Express)
-*   **Database:** MongoDB
+*   **Database:** Firestore Database
 
 ## Project Structure
 
