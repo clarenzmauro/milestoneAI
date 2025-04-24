@@ -19,6 +19,7 @@ interface IPlanContext {
   setPlan: (loadedPlan: FullPlan, chatHistory?: ChatMessage[], interactionMode?: InteractionMode) => void;
   saveCurrentPlan: () => Promise<void>;
   toggleTaskCompletion: (monthIndex: number, weekIndex: number, taskDay: number) => Promise<void>;
+  resetPlanState: () => void;
 }
 
 // 2. Create the Context
@@ -36,6 +37,16 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
   const [currentChatHistory, setCurrentChatHistory] = useState<ChatMessage[]>([]);
   const [currentInteractionMode, setCurrentInteractionMode] = useState<InteractionMode>('chat'); // Default mode
   const { user } = useAuth();
+
+  // Function to reset all relevant plan states
+  const resetPlanState = () => {
+    console.log('[PlanContext] Resetting plan state.');
+    setPlanState(null);
+    setIsLoading(false);
+    setError(null);
+    setCurrentChatHistory([]);
+    setCurrentInteractionMode('chat'); // Reset to default mode
+  };
 
   // Function to be called by components to generate/update the plan
   const generateNewPlan = async (goal: string, chatHistory: ChatMessage[], interactionMode: InteractionMode) => {
@@ -267,6 +278,7 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
     setPlan,
     saveCurrentPlan, // Updated function
     toggleTaskCompletion, // Updated function
+    resetPlanState, // Expose reset function
   };
 
   return (

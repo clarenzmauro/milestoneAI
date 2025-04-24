@@ -1,24 +1,32 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import styles from './Sidebar.module.css';
 import ChatModeUI from '../sidebar/ChatModeUI';
-import { generatePlan, chatWithAI } from '../../services/aiService';
+import { chatWithAI } from '../../services/aiService';
 import { usePlan } from '../../contexts/PlanContext';
 import { useAuth } from '../../contexts/AuthContext';
 import SavedPlansModal from '../modals/SavedPlansModal';
 import { FullPlan } from '../../types/planTypes';
-import { ChatMessage, ChatRole } from '../../types/chatTypes';
+import { ChatMessage } from '../../types/chatTypes';
 import { InteractionMode } from '../../types/generalTypes';
+
+// Define initial message states outside the component for stability
+const initialPlanMessage: ChatMessage = {
+  id: 'initial-plan',
+  role: 'ai',
+  text: "Let's build your roadmap to success! What big goal are you aiming for in 90 days?"
+};
+
+const initialChatMessage: ChatMessage = {
+  id: 'initial-chat',
+  role: 'ai',
+  text: "Plan loaded! Ready to tackle your goals? Ask me anything about refining tasks, brainstorming ideas, or adjusting your timeline."
+};
 
 const Sidebar: React.FC = () => {
   const [mode, setMode] = useState<InteractionMode>('plan');
   const [inputValue, setInputValue] = useState('');
-  // Separate message states for each mode
-  const [planMessages, setPlanMessages] = useState<ChatMessage[]>([
-    { id: Date.now(), role: 'ai', text: "Let's build your roadmap to success! What big goal are you aiming for in 90 days?" }
-  ]);
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
-    { id: Date.now() + 1, role: 'ai', text: "Plan loaded! Ready to tackle your goals? Ask me anything about refining tasks, brainstorming ideas, or adjusting your timeline." }
-  ]);
+  const [planMessages, setPlanMessages] = useState<ChatMessage[]>([initialPlanMessage]);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([initialChatMessage]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
@@ -31,7 +39,8 @@ const Sidebar: React.FC = () => {
     generateNewPlan,
     setPlanFromString,
     setPlan,
-    saveCurrentPlan
+    saveCurrentPlan,
+    resetPlanState
   } = usePlan();
 
   const { user, loading: authLoading, signInWithGoogle, signOutUser } = useAuth();
@@ -41,148 +50,233 @@ const Sidebar: React.FC = () => {
   // Determine if AI Coach should be disabled
   const coachModeDisabled = !plan;
 
+  // Select the active message list based on the current mode
+  const activeMessages = mode === 'plan' ? planMessages : chatMessages;
+
   useEffect(() => {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
-    // Depend on the current mode's messages
-  }, [mode, planMessages, chatMessages]);
+    // Depend on the active message list and the mode itself
+  }, [activeMessages, mode]);
 
-  const handleSend = async () => {
+  // --- Effect to reset local state when context plan is cleared ---
+  useEffect(() => {
+    console.log('[Sidebar] Plan context changed:', plan);
+    if (plan === null) {
+      console.log('[Sidebar] Plan is null, resetting local state (mode, messages).');
+      setMode('plan');
+      setPlanMessages([initialPlanMessage]);
+      // Optionally clear chat messages too, or leave them as is?
+      // Let's reset chat messages as well for a cleaner start
+      setChatMessages([initialChatMessage]);
+      setInputValue(''); // Clear input field as well
+      setError(null); // Clear local errors
+    }
+    // We only want this effect to run when the plan object itself changes reference or becomes null.
+  }, [plan]);
+
+  // --- Memoized Helper Functions --- 
+
+  const createNewUserMessage = useCallback((text: string): ChatMessage => ({
+    id: Date.now(),
+    role: 'user',
+    text,
+  }), []); // No dependencies
+
+  const handlePlanGeneration = useCallback(async (message: string, updatedMessages: ChatMessage[]) => {
+    console.log('[Sidebar] Calling generateNewPlan from context...');
+    // generateNewPlan, mode, planError, setPlanMessages are dependencies
+    await generateNewPlan(message, updatedMessages, mode);
+
+    const aiConfirmationMessage: ChatMessage = {
+      id: Date.now() + 1,
+      role: 'ai',
+      text: `OK. Generating plan for: "${message}". It will appear in the main area. You can refine it further here or switch to AI Coach.`,
+    };
+
+    if (!planError) {
+      setPlanMessages(prevMessages => [...prevMessages, aiConfirmationMessage]);
+    }
+  }, [generateNewPlan, mode, planError, setPlanMessages]);
+
+  const prepareChatHistory = useCallback((updatedMessages: ChatMessage[]): { role: 'user' | 'model'; parts: string }[] =>
+    updatedMessages.map(msg => ({
+      role: msg.role === 'user' ? 'user' : ('model' as 'user' | 'model'),
+      parts: msg.text,
+    })).slice(0, -1)
+  , []); // No dependencies
+
+  const handlePlanUpdate = useCallback(async (aiResponseText: string, updatedMessages: ChatMessage[]) => {
+    console.log('[Sidebar] In plan mode, attempting to update plan with response...');
+    // setPlanFromString, plan, mode, setPlanMessages are dependencies
+    const success = await setPlanFromString(aiResponseText, plan?.goal, updatedMessages, mode);
+
+    const messageToAdd: ChatMessage = {
+      id: Date.now() + 1,
+      role: 'ai',
+      text: success ? "OK, I've updated the plan based on your request. Check the main content area." : aiResponseText,
+    };
+
+    setPlanMessages(prevMessages => [...prevMessages, messageToAdd]);
+
+    if (!success) {
+      console.log('[Sidebar] Plan update failed (parsing error?). Displaying raw response in plan chat.');
+    }
+  }, [setPlanFromString, plan, mode, setPlanMessages]);
+
+  const handleRegularChatResponse = useCallback((aiResponseText: string, updatedMessages: ChatMessage[]) => {
+    // plan, saveCurrentPlan, setChatMessages are dependencies
+    const messageToAdd: ChatMessage = {
+      id: Date.now() + 1,
+      role: 'ai',
+      text: aiResponseText,
+    };
+
+    const updatedChatMessagesIncludingAI = [...updatedMessages, messageToAdd];
+    setChatMessages(updatedChatMessagesIncludingAI);
+
+    if (plan) {
+      saveCurrentPlan(); // Assuming saveCurrentPlan is stable or add to deps if needed
+    }
+  }, [plan, saveCurrentPlan, setChatMessages]);
+
+  const handleChatOrRefinement = useCallback(async (message: string, updatedMessages: ChatMessage[]) => {
+    console.log('[Sidebar] Calling chatWithAI service...');
+    // Dependencies: prepareChatHistory, plan, mode, handlePlanUpdate, handleRegularChatResponse
+    const history = prepareChatHistory(updatedMessages);
+    const aiResponseText = await chatWithAI(message, history, plan, mode);
+
+    if (mode === 'plan') {
+      await handlePlanUpdate(aiResponseText, updatedMessages);
+    } else {
+      handleRegularChatResponse(aiResponseText, updatedMessages);
+    }
+  }, [prepareChatHistory, plan, mode, handlePlanUpdate, handleRegularChatResponse]); // Added chatWithAI implicitly via aiService import
+
+  const handleError = useCallback((err: unknown) => {
+    console.error("[Sidebar] Error during AI interaction:", err);
+    // Dependencies: mode, setPlanMessages, setChatMessages, setError
+    const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred.';
+    const aiErrorMessage: ChatMessage = {
+      id: Date.now() + 1,
+      role: 'ai',
+      text: `Sorry, I encountered an error: ${errorMessage}`,
+    };
+
+    if (mode === 'plan') {
+      setPlanMessages(prevMessages => [...prevMessages, aiErrorMessage]);
+    } else {
+      setChatMessages(prevMessages => [...prevMessages, aiErrorMessage]);
+    }
+    setError(`Failed to get response. See chat for details.`);
+  }, [mode, setPlanMessages, setChatMessages, setError]);
+
+  // --- Main Event Handler --- 
+
+  const handleSend = useCallback(async () => {
     const trimmedMessage = inputValue.trim();
     if (!trimmedMessage || isLoading || isPlanLoading) return;
 
     setIsLoading(true);
     setError(null);
 
-    // Determine current message list and setter based on mode
+    // Dependencies: mode, planMessages, chatMessages, setPlanMessages, setChatMessages,
+    // createNewUserMessage, handlePlanGeneration, handleChatOrRefinement, handleError,
+    // inputValue, setInputValue, isLoading, isPlanLoading, setIsLoading, setError
     const currentMessages = mode === 'plan' ? planMessages : chatMessages;
     const setCurrentMessages = mode === 'plan' ? setPlanMessages : setChatMessages;
 
-    const newUserMessage: ChatMessage = {
-      id: Date.now(),
-      role: 'user',
-      text: trimmedMessage,
-    };
-
-    // Add user message to the correct list
+    const newUserMessage: ChatMessage = createNewUserMessage(trimmedMessage);
     const updatedMessages = [...currentMessages, newUserMessage];
     setCurrentMessages(updatedMessages);
     setInputValue('');
 
     try {
-      // --- Plan Generation / Initial Plan Refinement (Only in 'plan' mode) ---
       if (mode === 'plan' && planMessages.length <= 1) {
-        console.log('[Sidebar] Calling generateNewPlan from context...');
-        await generateNewPlan(trimmedMessage, updatedMessages, mode);
-        const aiConfirmationMessage: ChatMessage = {
-          id: Date.now() + 1, // Ensure unique ID
-          role: 'ai',
-          text: `OK. Generating plan for: "${trimmedMessage}". It will appear in the main area. You can refine it further here or switch to AI Coach.`,
-        };
-        if (!planError) { // Check context error, not local error state
-          // Add confirmation only to plan messages
-          setPlanMessages(prevMessages => [...prevMessages, aiConfirmationMessage]);
-        }
-      // --- Plan Refinement / Chatting (Both Modes) ---
+        await handlePlanGeneration(trimmedMessage, updatedMessages);
       } else {
-        console.log('[Sidebar] Calling chatWithAI service...');
-
-        // Prepare history from the *current mode's* message list
-        const history = updatedMessages.map(msg => ({
-          role: msg.role === 'user' ? 'user' : ('model' as 'user' | 'model'),
-          parts: msg.text
-        })).slice(0, -1); // Exclude the latest user message
-
-        const aiResponseText = await chatWithAI(trimmedMessage, history, plan, mode);
-
-        let messageToAdd: ChatMessage | null = null;
-
-        // --- Plan Update Logic (Only if in 'plan' mode and response looks like a plan) ---
-        if (mode === 'plan') {
-          console.log('[Sidebar] In plan mode, attempting to update plan with response...');
-          const success = await setPlanFromString(aiResponseText, plan?.goal, updatedMessages, mode);
-          if (success) {
-            // Plan updated successfully via context
-            messageToAdd = {
-              id: Date.now() + 1, // Ensure unique ID
-              role: 'ai',
-              text: "OK, I've updated the plan based on your request. Check the main content area.",
-            };
-            // Add confirmation to plan messages
-            setPlanMessages(prevMessages => [...prevMessages, messageToAdd!]);
-          } else {
-            // Parsing failed, treat as a regular chat message (context might show error)
-            console.log('[Sidebar] Plan update failed (parsing error?). Displaying raw response in plan chat.');
-            messageToAdd = {
-              id: Date.now() + 1, // Ensure unique ID
-              role: 'ai',
-              text: aiResponseText, // Show the raw response
-            };
-             // Add raw response to plan messages
-             setPlanMessages(prevMessages => [...prevMessages, messageToAdd!]);
-          }
-        // --- Regular Chat Response (Only in 'chat' mode) ---
-        } else {
-          // If in chat mode, just add the response directly to chat messages
-          messageToAdd = {
-            id: Date.now() + 1, // Ensure unique ID
-            role: 'ai',
-            text: aiResponseText,
-          };
-           // Add AI response to chat messages
-           const updatedChatMessagesIncludingAI = [...updatedMessages, messageToAdd]; // Use updatedMessages which includes the user message
-           setChatMessages(updatedChatMessagesIncludingAI);
-           // --- Save the chat history and mode --- 
-           if (plan) { // Only save if there's an associated plan
-             await saveCurrentPlan(); // Update the call to saveCurrentPlan
-           }
-        }
+        await handleChatOrRefinement(trimmedMessage, updatedMessages);
       }
     } catch (err) {
-      console.error("[Sidebar] Error during AI interaction:", err);
-      const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred.';
-      const aiErrorMessage: ChatMessage = {
-        id: Date.now() + 1,
-        role: 'ai',
-        text: `Sorry, I encountered an error: ${errorMessage}`,
-      };
-      if (mode === 'plan') {
-        setPlanMessages(prevMessages => [...prevMessages, aiErrorMessage]);
-      } else {
-        setChatMessages(prevMessages => [...prevMessages, aiErrorMessage]);
-      }
-      setError(`Failed to get response. See chat for details.`);
+      handleError(err);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [
+      mode, planMessages, chatMessages, setPlanMessages, setChatMessages,
+      createNewUserMessage, handlePlanGeneration, handleChatOrRefinement, handleError,
+      inputValue, setInputValue, isLoading, isPlanLoading, setIsLoading, setError
+  ]);
 
-  // Updated function to handle loading plan, history, and mode
-  const handleLoadPlan = (loadedData: { plan: FullPlan; chatHistory?: ChatMessage[]; interactionMode?: InteractionMode }) => {
-    console.log('Loading plan:', loadedData.plan.goal); // Keep this log
+  // --- Load Plan Handler --- 
+  const handleLoadPlan = useCallback((loadedData: { plan: FullPlan; chatHistory?: ChatMessage[]; interactionMode?: InteractionMode }) => {
+    console.log('Loading plan:', loadedData.plan.goal);
+    // Dependencies: setPlan, setPlanMessages, setChatMessages, setMode, setIsPlansModalOpen
 
     const loadedPlanObject = loadedData.plan;
     const loadedChatHistory = loadedData.chatHistory || [];
-    const loadedMode: InteractionMode = loadedData.interactionMode || 'plan'; // Default to plan
+    const loadedMode: InteractionMode = loadedData.interactionMode || 'plan';
 
-    // 1. Update Plan Context directly using the new setPlan function
-    setPlan(loadedPlanObject); // <-- Use the new direct setter
+    setPlan(loadedPlanObject);
 
-    // 2. Update Sidebar's local state for chat history and mode
     if (loadedMode === 'plan') {
-       setPlanMessages(loadedChatHistory); // Load history into plan messages
-       setChatMessages([{ id: Date.now() +1, role: 'ai', text: 'Switched to AI Coach mode. How can I help refine your loaded plan?'}]); // Reset coach messages
-    } else { // loadedMode === 'chat'
-       setChatMessages(loadedChatHistory); // Load history into coach messages
-       setPlanMessages([{ id: Date.now(), role: 'ai', text: 'Switched to Plan mode. Define or refine your goal.'}]); // Reset plan messages
+       setPlanMessages(loadedChatHistory.length > 0 ? loadedChatHistory : [{ id: Date.now(), role: 'ai', text: 'Plan loaded. Refine your goal or switch to AI Coach.'}]);
+       setChatMessages([{ id: Date.now() + 1, role: 'ai', text: 'Switched to AI Coach mode. How can I help refine your loaded plan?'}]);
+    } else {
+       setChatMessages(loadedChatHistory.length > 0 ? loadedChatHistory : [{ id: Date.now() + 1, role: 'ai', text: 'Plan loaded! Ask me anything.' }]);
+       setPlanMessages([{ id: Date.now(), role: 'ai', text: 'Switched to Plan mode. Define or refine your goal.'}]);
     }
-    setMode(loadedMode); // Set the sidebar's mode
+    setMode(loadedMode);
 
     console.log(`Loaded plan '${loadedData.plan.goal}', set mode to: ${loadedMode}, loaded history length: ${loadedChatHistory.length}`);
 
-    setIsPlansModalOpen(false); // Close modal
-  };
+    setIsPlansModalOpen(false);
+  }, [setPlan, setPlanMessages, setChatMessages, setMode, setIsPlansModalOpen]);
+
+  // --- Memoized Inline Handlers --- 
+
+  const handleSignOut = useCallback(() => {
+    signOutUser();
+  }, [signOutUser]);
+
+  const handleOpenPlansModal = useCallback(() => {
+    setIsPlansModalOpen(true);
+  }, [setIsPlansModalOpen]);
+
+  const handleSignIn = useCallback(() => {
+    signInWithGoogle();
+  }, [signInWithGoogle]);
+
+  const handleToggleCollapse = useCallback(() => {
+    setIsCollapsed(prev => !prev);
+  }, [setIsCollapsed]);
+
+  const handleSetModePlan = useCallback(() => {
+    setMode('plan');
+  }, [setMode]);
+
+  const handleSetModeChat = useCallback(() => {
+    if (!coachModeDisabled) {
+      setMode('chat');
+    }
+  }, [coachModeDisabled, setMode]);
+
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInputValue(e.target.value);
+  }, [setInputValue]);
+
+  const handleInputKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  }, [handleSend]); // Depends on the memoized handleSend
+
+  const handleCloseModal = useCallback(() => {
+    setIsPlansModalOpen(false);
+  }, [setIsPlansModalOpen]);
+
 
   return (
     <>
@@ -201,19 +295,29 @@ const Sidebar: React.FC = () => {
                 ) : user ? (
                   <>
                     {/* <span className={styles.userName}>{user.displayName || 'User'}</span> */}
-                    <button onClick={signOutUser} className={styles.authButton} title="Sign Out">
+                    <button onClick={handleSignOut} className={styles.authButton} title="Sign Out">
                       Sign Out
                     </button>
-                    <button 
-                      onClick={() => setIsPlansModalOpen(true)} // Open the modal
-                      className={styles.plansButton} 
+                    <button
+                      onClick={handleOpenPlansModal} // Use memoized handler
+                      className={styles.plansButton}
                       title="Saved Plans"
                     >
                       Plans
                     </button>
+                    <button
+                      onClick={resetPlanState} // Call reset function
+                      className={styles.newPlanButton}
+                      title="New Plan"
+                    >
+                      <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" width="16" height="16">
+                        <line x1="7" y1="2.75" x2="7" y2="11.25"/>
+                        <line x1="2.75" y1="7" x2="11.25" y2="7"/>
+                      </svg>
+                    </button>
                   </>
                 ) : (
-                  <button onClick={signInWithGoogle} className={styles.authButton} title="Sign In with Google">
+                  <button onClick={handleSignIn} className={styles.authButton} title="Sign In with Google">
                     Sign In
                   </button>
                 )}
@@ -223,7 +327,7 @@ const Sidebar: React.FC = () => {
             {/* Collapse/Expand Button */}
             <button
               title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
-              onClick={() => setIsCollapsed(!isCollapsed)}
+              onClick={handleToggleCollapse} // Use memoized handler
               className={styles.collapseButton}
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
@@ -241,9 +345,9 @@ const Sidebar: React.FC = () => {
         {!isCollapsed && (
           <>
             <div className={styles.modeSelector}>
-              <button 
+              <button
                 className={`${styles.modeButton} ${mode === 'plan' ? styles.active : ''}`}
-                onClick={() => setMode('plan')}
+                onClick={handleSetModePlan} // Use memoized handler
               >
                 <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5">
                   <rect x="1.75" y="2.75" width="10.5" height="8.5" rx="1" />
@@ -252,14 +356,10 @@ const Sidebar: React.FC = () => {
                 </svg>
                 Plan Creator
               </button>
-              <button 
+              <button
                 className={`${styles.modeButton} ${mode === 'chat' ? styles.active : ''} ${coachModeDisabled ? styles.disabled : ''}`}
-                onClick={() => {
-                  if (!coachModeDisabled) {
-                    setMode('chat');
-                  }
-                }}
-                disabled={coachModeDisabled} 
+                onClick={handleSetModeChat} // Use memoized handler
+                disabled={coachModeDisabled}
                 title={coachModeDisabled ? "Generate a plan first to enable AI Coach" : "Switch to AI Coach"}
               >
                 <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -288,19 +388,14 @@ const Sidebar: React.FC = () => {
                 className={styles.input}
                 placeholder={mode === 'plan' ? "Define your 90-day goal..." : "Ask the AI Coach..."}
                 value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSend();
-                  }
-                }}
+                onChange={handleInputChange} // Use memoized handler
+                onKeyDown={handleInputKeyDown} // Use memoized handler
                 disabled={isLoading || isPlanLoading}
               />
               <div className={styles.controls}>
                 <button
                   className={`${styles.button} ${styles.primaryButton}`}
-                  onClick={handleSend}
+                  onClick={handleSend} // Use memoized handler
                   disabled={!inputValue.trim() || isLoading || isPlanLoading}
                 >
                   {isLoading ? 'Thinking...' : isPlanLoading ? 'Generating Plan...' : 'Send'}
@@ -314,8 +409,8 @@ const Sidebar: React.FC = () => {
       {/* Render the modal outside the aside if needed for stacking context, but here is fine for now */}
       <SavedPlansModal
         isOpen={isPlansModalOpen}
-        onClose={() => setIsPlansModalOpen(false)}
-        onLoadPlan={handleLoadPlan}
+        onClose={handleCloseModal} // Use memoized handler
+        onLoadPlan={handleLoadPlan} // Use memoized handler
       />
     </>
   );

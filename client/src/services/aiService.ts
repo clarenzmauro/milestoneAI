@@ -1,28 +1,51 @@
-import { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
-import { FullPlan } from '../types/planTypes'; // Import FullPlan type
-import { InteractionMode } from '../types/generalTypes'; // Import InteractionMode
+import { FullPlan } from '../types/planTypes';
+import { InteractionMode } from '../types/generalTypes';
 
-// Base URL for the backend proxy server
-const BACKEND_URL = 'http://localhost:3001/api';
+// Base URL from environment variable or default to localhost
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001/api';
+
+/**
+ * Reusable fetch helper for backend API calls.
+ * Handles common logic like headers, stringifying body, checking response status, and parsing JSON.
+ * Throws a formatted error on failure.
+ */
+async function _fetchAPI<T>(endpoint: string, body: object): Promise<T> {
+  const url = `${BACKEND_URL}/${endpoint}`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+
+  // Attempt to parse JSON regardless of status to potentially get error details
+  let data;
+  try {
+    data = await response.json();
+  } catch (jsonError) {
+    // If JSON parsing fails AND status is bad, throw based on status
+    if (!response.ok) {
+      throw new Error(`Backend Error: ${response.status} ${response.statusText} at ${url}`);
+    }
+    // If JSON parsing fails but status is ok, something else is wrong
+    throw new Error(`Failed to parse JSON response from ${url}, status: ${response.status}`);
+  }
+
+  if (!response.ok) {
+    // Use error message from backend if available, otherwise use status text
+    throw new Error(data?.error || `Backend Error: ${response.status} ${response.statusText} at ${url}`);
+  }
+
+  return data;
+}
 
 // Function to generate the initial 90-day plan via backend proxy
 export const generatePlan = async (goal: string): Promise<string> => {
   console.log(`[Client] Sending generate plan request for goal: "${goal}" to backend proxy...`);
   try {
-    const response = await fetch(`${BACKEND_URL}/generate-plan`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ goal }), // Send goal in the request body
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      // Handle errors returned from the backend API
-      throw new Error(data.error || `Backend Error: ${response.status} ${response.statusText}`);
-    }
+    // Use the fetch helper
+    const data = await _fetchAPI<{ plan?: string }>('generate-plan', { goal });
 
     if (!data.plan) {
       throw new Error("No plan content received from backend.");
@@ -32,35 +55,32 @@ export const generatePlan = async (goal: string): Promise<string> => {
     return data.plan;
   } catch (error) {
     console.error("[Client] Error calling backend proxy (generatePlan):", error);
-    // Re-throw a more specific error message if possible
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    // Re-throw error with context
     throw new Error(`Failed to generate plan via backend: ${errorMessage}`);
   }
 };
 
+// NOTE: Ensure this history type matches exactly what the backend expects.
+// If the backend uses OpenAI format, this might need adjustment or conversion.
+type GeminiHistoryItem = { role: 'user' | 'model'; parts: string };
+
 // Function for chat interactions via backend proxy
 export const chatWithAI = async (
   message: string,
-  history: { role: 'user' | 'model'; parts: string }[],
-  plan: FullPlan | null, // Add plan as an argument
-  mode: InteractionMode // Add mode parameter
+  history: GeminiHistoryItem[], // Use specific type alias
+  plan: FullPlan | null,
+  mode: InteractionMode
 ): Promise<string> => {
   console.log(`[Client] Sending chat message: "${message}" with mode: ${mode} and plan context to backend proxy...`);
   try {
-    const response = await fetch(`${BACKEND_URL}/chat`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      // Send message, history, plan, and the current interaction mode
-      body: JSON.stringify({ message, history, plan, mode }),
+    // Use the fetch helper
+    const data = await _fetchAPI<{ response?: string }>('chat', {
+      message,
+      history,
+      plan,
+      mode
     });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.error || `Backend Error: ${response.status} ${response.statusText}`);
-    }
 
     if (!data.response) {
       throw new Error("No chat response received from backend.");
@@ -71,6 +91,7 @@ export const chatWithAI = async (
   } catch (error) {
     console.error("[Client] Error calling backend proxy (chatWithAI):", error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    // Re-throw error with context
     throw new Error(`Failed to get chat response via backend: ${errorMessage}`);
   }
 };

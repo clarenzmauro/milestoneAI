@@ -1,5 +1,5 @@
 // src/contexts/AuthContext.tsx
-import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
+import React, { createContext, useState, useEffect, useContext, ReactNode, useCallback, useMemo } from 'react';
 import { User, onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth';
 import { auth, googleProvider } from '../firebaseConfig'; // Import auth and provider
 
@@ -40,36 +40,39 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return () => unsubscribe();
   }, []);
 
-  const signInWithGoogle = async () => {
+  // Memoize signInWithGoogle and re-throw errors
+  const signInWithGoogle = useCallback(async () => {
     setLoading(true);
     try {
       await signInWithPopup(auth, googleProvider);
-      // onAuthStateChanged will handle setting the user state
+      // onAuthStateChanged will handle setting the user state and setLoading(false)
     } catch (error) {
       console.error("Error signing in with Google:", error);
       setLoading(false); // Ensure loading stops on error
+      throw error; // Re-throw the error for components to handle
     }
-    // setLoading(false) is handled by onAuthStateChanged
-  };
+  }, []); // No dependencies needed
 
-  const signOutUser = async () => {
+  // Memoize signOutUser and re-throw errors
+  const signOutUser = useCallback(async () => {
     setLoading(true);
     try {
       await signOut(auth);
-      // onAuthStateChanged will handle setting the user state to null
+      // onAuthStateChanged will handle setting the user state to null and setLoading(false)
     } catch (error) {
       console.error("Error signing out:", error);
       setLoading(false); // Ensure loading stops on error
+      throw error; // Re-throw the error for components to handle
     }
-     // setLoading(false) is handled by onAuthStateChanged
-  };
+  }, []); // No dependencies needed
 
-  const value = {
+  // Memoize the context value
+  const value = useMemo(() => ({
     user,
     loading,
     signInWithGoogle,
     signOutUser,
-  };
+  }), [user, loading, signInWithGoogle, signOutUser]); // Add dependencies
 
   // Don't render children until loading is false to prevent flicker
   return (

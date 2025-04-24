@@ -1,7 +1,43 @@
 .sidebar {
+  /* --- Define CSS Variables --- */
+  --color-primary: #4A90E2;
+  --color-primary-dark: #357ABD;
+  --color-border: #E5E9ED;
+  --color-background-light: #F5F7F9;
+  --color-background-medium: #F6F8FA;
+  --color-background-highlight: #EDF5FF;
+  --color-background-white: white;
+  --color-text-main: #1A1A1A;
+  --color-text-secondary: #666;
+  --color-text-placeholder: #999;
+  --color-text-white: white;
+  --color-error-text: #D8000C;
+  --color-error-background: #FFD2D2;
+  --color-code-background: #2d3748;
+  --color-code-text: #e2e8f0;
+
+  --font-size-base: 13px;
+  --font-size-small: 11px;
+  --font-size-tiny: 0.9em;
+  --font-size-medium: 1.1em;
+  --font-size-large: 24px; /* Example if logo size was used elsewhere */
+
+  --border-radius-small: 4px;
+  --border-radius-medium: 6px;
+  --border-radius-large: 8px;
+  --border-radius-message: 12px;
+
+  --spacing-xs: 4px;
+  --spacing-s: 8px;
+  --spacing-m: 10px;
+  --spacing-l: 12px;
+  --spacing-xl: 16px;
+  --spacing-xxl: 24px;
+
+  /* --- Component Styles --- */
   width: 380px;
   height: 100vh;
-  background: white;
+  background: var(--color-background-white);
   display: flex;
   flex-direction: column;
   transition: width 0.3s ease-in-out;
@@ -16,64 +52,64 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 15px;
-  border-bottom: 1px solid #E5E9ED;
+  padding: var(--spacing-m) var(--spacing-l);
+  border-bottom: 1px solid var(--color-border);
   height: 50px;
   box-sizing: border-box;
 }
 
 .topBar > div:first-child {
-  font-size: 13px;
+  font-size: var(--font-size-base);
   font-weight: 500;
-  color: #1A1A1A;
+  color: var(--color-text-main);
 }
 
 .topBarTitle {
   font-weight: bold;
-  font-size: 1.1em;
+  font-size: var(--font-size-medium);
 }
 
 .topBarButtons {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--spacing-m);
 }
 
 .authButton,
 .plansButton {
-  background-color: #F5F7F9;
-  color: #666;
-  border: 1px solid #E5E9ED;
-  padding: 5px 10px;
-  border-radius: 4px;
+  background-color: var(--color-background-light);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+  padding: 5px var(--spacing-m);
+  border-radius: var(--border-radius-small);
   cursor: pointer;
-  font-size: 0.9em;
+  font-size: var(--font-size-tiny);
   transition: background-color 0.2s ease;
 }
 
 .authButton:hover,
 .plansButton:hover {
-  background-color: #E5E9ED;
+  background-color: var(--color-border);
 }
 
 .topBar button,
 .collapseButton {
   background: none;
   border: none;
-  padding: 4px;
-  color: #666;
+  padding: var(--spacing-xs);
+  color: var(--color-text-secondary);
   cursor: pointer;
   display: flex;
   align-items: center;
 }
 
 .topBar button:hover {
-  color: #333;
+  color: #333; /* Keep specific hover or use a --color-text-secondary-hover variable */
 }
 
 .topBar svg {
-  width: 16px;
-  height: 16px;
+  width: var(--spacing-xl);
+  height: var(--spacing-xl);
 }
 
 .collapseButton {
@@ -82,7 +118,7 @@
 
 .sidebar.collapsed .topBar {
   justify-content: flex-end;
-  padding: 10px;
+  padding: var(--spacing-m);
 }
 
 .sidebar.collapsed .topBarTitle {
@@ -94,32 +130,32 @@
 }
 
 .header {
-  padding: 16px;
-  border-bottom: 1px solid #e1e4e8;
+  padding: var(--spacing-xl);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .logo {
-  font-size: 24px;
+  font-size: var(--font-size-large);
   font-weight: 700;
-  color: #1A1A1A;
-  margin-bottom: 24px;
+  color: var(--color-text-main);
+  margin-bottom: var(--spacing-xxl);
 }
 
 .modeSelector {
   display: flex;
-  border-bottom: 1px solid #E5E9ED;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .modeButton {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 8px 12px;
-  background: white;
+  padding: var(--spacing-s) var(--spacing-l);
+  background: var(--color-background-white);
   border: none;
   text-align: center;
-  font-size: 13px;
-  color: #666;
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
   cursor: pointer;
   position: relative;
   flex: 1;
@@ -128,18 +164,18 @@
 .modeButton svg {
   width: 14px;
   height: 14px;
-  margin-right: 8px;
+  margin-right: var(--spacing-s);
   opacity: 0.7;
 }
 
 .modeButton:hover {
-  background: #F6F8FA;
+  background: var(--color-background-medium);
 }
 
 .modeButton.active {
-  color: #1A1A1A;
+  color: var(--color-text-main);
   font-weight: 500;
-  background: #F6F8FA;
+  background: var(--color-background-medium);
 }
 
 .modeButton.active svg {
@@ -153,7 +189,7 @@
   right: 0;
   bottom: 0;
   height: 2px;
-  background: #4A90E2;
+  background: var(--color-primary);
 }
 
 .modeButton.disabled {
@@ -162,78 +198,78 @@
 }
 
 .modeDescription {
-  font-size: 12px;
-  color: #666;
-  padding: 12px;
-  background: #EDF5FF;
+  font-size: var(--font-size-base); /* Assuming 12px ~ 13px */
+  color: var(--color-text-secondary);
+  padding: var(--spacing-l);
+  background: var(--color-background-highlight);
   line-height: 1.5;
-  margin: 12px;
-  border-radius: 6px;
+  margin: var(--spacing-l);
+  border-radius: var(--border-radius-medium);
 }
 
 .chatContainer {
   flex: 1;
   display: flex;
   flex-direction: column;
-  background-color: white;
-  padding: 16px;
+  background-color: var(--color-background-white);
+  padding: var(--spacing-xl);
 }
 
 .inputContainer {
-  padding: 16px;
-  background-color: white;
-  border-top: 1px solid #e1e4e8;
+  padding: var(--spacing-xl);
+  background-color: var(--color-background-white);
+  border-top: 1px solid var(--color-border);
 }
 
 .inputArea {
   margin-top: auto;
-  padding: 12px;
-  border-top: 1px solid #E5E9ED;
-  background: white;
+  padding: var(--spacing-l);
+  border-top: 1px solid var(--color-border);
+  background: var(--color-background-white);
 }
 
 .inputHelp {
-  font-size: 11px;
-  color: #666;
-  margin-bottom: 8px;
-  padding: 0 4px;
+  font-size: var(--font-size-small);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-s);
+  padding: 0 var(--spacing-xs);
 }
 
 .input {
   width: 100%;
-  padding: 12px;
-  border: 1px solid #E5E9ED;
-  border-radius: 6px;
-  font-size: 13px;
+  padding: var(--spacing-l);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-medium);
+  font-size: var(--font-size-base);
   resize: none;
   min-height: 60px;
-  background-color: white;
-  margin-bottom: 8px;
+  background-color: var(--color-background-white);
+  margin-bottom: var(--spacing-s);
   line-height: 1.5;
 }
 
 .input::placeholder {
-  color: #999;
-  font-size: 13px;
+  color: var(--color-text-placeholder);
+  font-size: var(--font-size-base);
 }
 
 .input:focus {
   outline: none;
-  border-color: #4a90e2;
-  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2); /* Keep rgba for alpha */
 }
 
 .controls {
   display: flex;
   justify-content: flex-end;
-  padding: 0 4px;
+  padding: 0 var(--spacing-xs);
 }
 
 .button {
-  padding: 6px 16px;
+  padding: 6px var(--spacing-xl); /* Keep 6px or use var(--spacing-s)? */
   border: none;
-  border-radius: 4px;
-  font-size: 13px;
+  border-radius: var(--border-radius-small);
+  font-size: var(--font-size-base);
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
@@ -243,37 +279,32 @@
 }
 
 .button:hover {
-  opacity: 0.9;
+  transform: translateY(-1px);
 }
 
 .primaryButton {
-  background: #4A90E2;
-  color: white;
+  background: var(--color-primary);
+  color: var(--color-text-white);
 }
 
 .secondaryButton {
-  background: #E5E9ED;
-  color: #666;
-}
-
-.primaryButton {
-  background-color: #4A90E2;
-  color: white;
+  background: var(--color-border); /* Or use background-light? */
+  color: var(--color-text-secondary);
 }
 
 .primaryButton:hover {
-  background-color: #357ABD;
+  background-color: var(--color-primary-dark);
   transform: translateY(-1px);
 }
 
 .secondaryButton {
-  background-color: #F5F7F9;
-  color: #1A1A1A;
-  border: 1px solid #E5E9ED;
+  background-color: var(--color-background-light);
+  color: var(--color-text-main);
+  border: 1px solid var(--color-border);
 }
 
 .secondaryButton:hover {
-  background-color: #E5E9ED;
+  background-color: var(--color-border);
   transform: translateY(-1px);
 }
 
@@ -282,57 +313,57 @@
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  margin: 24px 0;
+  gap: var(--spacing-xl);
+  margin: var(--spacing-xxl) 0;
 }
 
 .message {
-  padding: 12px 16px;
-  border-radius: 12px;
+  padding: var(--spacing-l) var(--spacing-xl);
+  border-radius: var(--border-radius-message);
   max-width: 85%;
-  font-size: 14px;
+  font-size: 14px; /* Keep 14px or use --font-size-base? */
   line-height: 1.5;
 }
 
 .userMessage {
-  background-color: #4A90E2;
-  color: white;
+  background-color: var(--color-primary);
+  color: var(--color-text-white);
   align-self: flex-end;
 }
 
 .aiMessage {
-  background-color: #F5F7F9;
-  color: #1A1A1A;
+  background-color: var(--color-background-light);
+  color: var(--color-text-main);
   align-self: flex-start;
 }
 
 .chatMessagesContainer {
   flex-grow: 1;
   overflow-y: auto;
-  padding: 12px;
+  padding: var(--spacing-l);
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--spacing-m);
 }
 
 .message {
-  padding: 8px 12px;
-  border-radius: 8px;
+  padding: var(--spacing-s) var(--spacing-l);
+  border-radius: var(--border-radius-large);
   max-width: 85%;
   line-height: 1.4;
-  font-size: 13px;
+  font-size: var(--font-size-base);
 }
 
 .userMessage {
-  background-color: #E5E9ED;
-  color: #1A1A1A;
+  background-color: var(--color-border); /* Or use background-light? */
+  color: var(--color-text-main);
   align-self: flex-end;
   border-bottom-right-radius: 2px;
 }
 
 .aiMessage {
-  background-color: #EDF5FF;
-  color: #1A1A1A;
+  background-color: var(--color-background-highlight);
+  color: var(--color-text-main);
   align-self: flex-start;
   border-bottom-left-radius: 2px;
 }
@@ -345,12 +376,12 @@
 }
 
 .errorMessage {
-  padding: 8px 12px;
-  color: #D8000C;
-  background-color: #FFD2D2;
-  border: 1px solid #D8000C;
-  border-radius: 4px;
-  margin: 10px 12px 0;
-  font-size: 12px;
+  padding: var(--spacing-s) var(--spacing-l);
+  color: var(--color-error-text);
+  background-color: var(--color-error-background);
+  border: 1px solid var(--color-error-text);
+  border-radius: var(--border-radius-small);
+  margin: var(--spacing-m) var(--spacing-l) 0;
+  font-size: var(--font-size-base); /* Assuming 12px ~ 13px */
   text-align: center;
 }

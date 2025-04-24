@@ -1,5 +1,5 @@
-import { ChatMessage } from './chatTypes';       // Added import
-import { InteractionMode } from './generalTypes'; // Added import
+import { ChatMessage } from './chatTypes';      
+import { InteractionMode } from './generalTypes'; 
 
 // Defines the structure for the AI-generated 90-day plan
 
@@ -25,8 +25,8 @@ export interface MonthlyMilestone {
 export interface FullPlan {
   goal: string;
   monthlyMilestones: MonthlyMilestone[];
-  chatHistory?: ChatMessage[]; // Optional: Added to reflect saved data
-  interactionMode?: InteractionMode; // Optional: Added to reflect saved data
+  chatHistory?: ChatMessage[];
+  interactionMode?: InteractionMode;
 }
 
 // Type guard to check if an object is a valid FullPlan
@@ -60,8 +60,5 @@ export const isFullPlan = (obj: any): obj is FullPlan => {
             )
         )
     )
-    // Optionally check for chatHistory and interactionMode if needed for validation
-    // (typeof obj.chatHistory === 'undefined' || Array.isArray(obj.chatHistory)) &&
-    // (typeof obj.interactionMode === 'undefined' || typeof obj.interactionMode === 'string')
   );
 };

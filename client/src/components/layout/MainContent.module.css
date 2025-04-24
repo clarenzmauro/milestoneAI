@@ -204,7 +204,6 @@
 /* Style for placeholder cards to make them less prominent */
 .placeholderCard {
   background-color: var(--background-tertiary);
-  opacity: 0.6;
   cursor: default;
 }
 

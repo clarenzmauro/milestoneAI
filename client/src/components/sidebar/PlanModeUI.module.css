@@ -1,73 +1,73 @@
 /* src/components/sidebar/PlanModeUI.module.css */
 
 .planContainer {
-  padding: 15px;
-  border-top: 1px solid var(--border-light);
-  margin-top: 10px;
-  font-size: 0.9em;
+  padding: var(--spacing-xl); /* Was 15px */
+  border-top: 1px solid var(--color-border); /* Was --border-light */
+  margin-top: var(--spacing-m); /* Was 10px */
+  font-size: var(--font-size-tiny); /* Was 0.9em */
 }
 
 .loading,
 .error,
 .noPlan {
-  padding: 15px;
+  padding: var(--spacing-xl); /* Was 15px */
   text-align: center;
-  color: var(--text-light);
+  color: var(--color-text-secondary); /* Was --text-light */
   font-style: italic;
 }
 
 .error {
-  color: var(--error-color);
+  color: var(--color-error-text); /* Was --error-color */
   font-style: normal;
 }
 
 .planActions {
-  margin-bottom: 15px;
+  margin-bottom: var(--spacing-xl); /* Was 15px */
   display: flex;
   align-items: center;
-  gap: 10px; /* Space between button and message */
+  gap: var(--spacing-m); /* Was 10px */
   flex-wrap: wrap; /* Allow message to wrap if needed */
 }
 
 .saveButton {
-  background-color: var(--primary-color);
-  color: white;
+  background-color: var(--color-primary); /* Was --primary-color */
+  color: var(--color-text-white); /* Was white */
   border: none;
-  padding: 8px 15px;
-  border-radius: 4px;
+  padding: var(--spacing-s) var(--spacing-xl); /* Was 8px 15px */
+  border-radius: var(--border-radius-small); /* Was 4px */
   cursor: pointer;
   transition: background-color 0.2s ease;
 }
 
 .saveButton:hover {
-  background-color: var(--primary-dark);
+  background-color: var(--color-primary-dark); /* Was --primary-dark */
 }
 
 .saveButton:disabled {
-  background-color: var(--button-disabled-bg);
-  color: var(--button-disabled-text);
+  background-color: var(--color-background-medium); /* Was --button-disabled-bg */
+  color: var(--color-text-secondary); /* Was --button-disabled-text */
   cursor: not-allowed;
 }
 
 .saveMessage {
-  font-size: 0.85em;
-  color: var(--text-light);
+  font-size: 0.85em; /* Keep relative size or map to --font-size-small/tiny? Using 0.85em for now */
+  color: var(--color-text-secondary); /* Was --text-light */
 }
 
 .saveMessage[data-error="true"] {
-  color: var(--error-color);
+  color: var(--color-error-text); /* Was --error-color */
 }
 
 /* Add styles for plan display elements if needed */
 .planContainer h3 {
   margin-top: 0;
-  margin-bottom: 8px;
-  color: var(--text-color);
+  margin-bottom: var(--spacing-s); /* Was 8px */
+  color: var(--color-text-main); /* Was --text-color */
 }
 
 .planContainer p {
   margin-top: 0;
-  margin-bottom: 15px;
-  color: var(--text-light);
+  margin-bottom: var(--spacing-xl); /* Was 15px */
+  color: var(--color-text-secondary); /* Was --text-light */
   line-height: 1.4;
 }

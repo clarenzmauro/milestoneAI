@@ -13,7 +13,7 @@ const ChatModeUI: React.FC<ChatModeUIProps> = ({ messages }) => {
       {messages.map((msg: ChatMessage) => (
         <div
           key={msg.id}
-          className={`${styles.messageBubble} ${styles[msg.role]}`}>
+          className={`${styles.messageBubble} ${styles[msg.role] || styles.defaultRole}`}>
           <ReactMarkdown
             components={{
               ul: ({node, ...props}) => <ul className={styles.markdownList} {...props} />,

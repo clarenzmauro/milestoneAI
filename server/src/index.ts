@@ -13,8 +13,6 @@ app.get('/', (req: Request, res: Response) => {
   res.send('MilestoneAI Server is running!');
 });
 
-// TODO: Add API routes (e.g., app.use('/api/goals', goalRoutes));
-
 app.listen(port, () => {
   console.log(`⚡️[server]: Server is running at http://localhost:${port}`);
 });

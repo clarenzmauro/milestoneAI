@@ -2,13 +2,22 @@ import { FullPlan, MonthlyMilestone, WeeklyObjective, DailyTask } from '../types
 
 /**
  * Attempts to parse a raw string (likely markdown) from the AI into a structured FullPlan object.
- * NOTE: This is a basic parser and relies heavily on the AI providing output
- * in a consistent format (e.g., using specific Markdown headings and lists).
- * It may need significant refinement based on actual AI output.
+ * 
+ * !!! WARNING !!!
+ * This parser is EXTREMELY FRAGILE and relies HEAVILY on the AI providing output
+ * in a *very* consistent format (e.g., specific Markdown headings `#`, `##`, `###` 
+ * and list markers `-` or `*`). Even minor changes in the AI's output format
+ * WILL likely break this parser or lead to incorrect results.
+ * 
+ * -> THOROUGH TESTING with actual AI output is CRUCIAL. <-
+ *
+ * LONG-TERM STRATEGY: If format consistency proves difficult, requesting
+ * structured JSON output directly from the AI is a far more robust approach
+ * and avoids the need for fragile string parsing.
  *
  * Example Expected Format:
- * # Goal: [User's Goal]
- *
+ * # Goal: [User's Goal]  (Note: Goal is actually taken from input parameter)
+ * 
  * ## Month 1: [Milestone Title]
  * ### Week 1: [Objective Title]
  * - Day 1: [Task description]
@@ -26,6 +35,7 @@ import { FullPlan, MonthlyMilestone, WeeklyObjective, DailyTask } from '../types
 export const parsePlanString = (rawPlanString: string, userGoal: string): FullPlan | null => {
   if (!rawPlanString) return null;
 
+  // Optional: Add further input sanitization here if needed (e.g., normalize line endings)
   const lines = rawPlanString.split('\n').filter(line => line.trim() !== '');
   const plan: FullPlan = {
     goal: userGoal, // Use the goal passed in, as the AI might not include it consistently
@@ -40,6 +50,12 @@ export const parsePlanString = (rawPlanString: string, userGoal: string): FullPl
 
   for (const line of lines) {
     const trimmedLine = line.trim();
+
+    // --- Regex Matching --- 
+    // Note: These regexes use `#+` for flexibility. If the AI *always* uses specific 
+    // heading levels (e.g., `##` for Month, `###` for Week), stricter regexes 
+    // like `^##\s*Month...` could be used for potentially tighter matching, 
+    // but would break if the AI deviates.
 
     // Match Month Milestone (e.g., ## Month 1: Title or similar)
     const monthMatch = trimmedLine.match(/^#+\s*Month\s*(\d+):?\s*(.*)/i);

@@ -1,3 +1,47 @@
+/* Color Palette and Global Variables */
+:root {
+  /* Color Palette */
+  --primary-color: #4a90e2; /* Primary blue */
+  --accent-color: #50b83c; /* Accent green (used for progress bar, weeks) */
+  --accent-color-light: #8fdd7f; /* Lighter green for gradient */
+  --accent-color-dark: #409d2e; /* Darker green for hover */
+  --secondary-accent-color: #f5a623; /* Secondary accent orange (used for days) */
+
+  /* Danger/Error Colors */
+  --color-danger: #dc3545; /* Red for delete buttons, errors */
+  --color-danger-hover: #c82333; /* Darker red for hover */
+  --color-danger-background: #f8d7da; /* Light red background for error messages (optional) */
+  --color-danger-border: #f5c6cb; /* Border for error messages (optional) */
+
+  /* Backgrounds */
+  --background-primary: #f8f9fa; /* Main body background */
+  --layout-background: #EEF1F4; /* Specific background for main layout container */
+  --background-secondary: #ffffff; /* Card backgrounds, modal backgrounds */
+  --background-tertiary: #e9ecef; /* Placeholder background, progress bar track */
+  --background-hover-light: #f8f8f8; /* Light hover for list items */
+  --overlay-background: rgba(0, 0, 0, 0.6); /* Modal overlay */
+
+  /* Text Colors */
+  --text-primary: #212529; /* Main text color */
+  --text-secondary: #4A4A4A; /* Slightly lighter text (card content) */
+  --text-tertiary: #6c757d; /* Even lighter text (subtle info, like dates) - same as disabled */
+  --text-disabled: #6c757d; /* Disabled/Placeholder text */
+  --button-text-color: #ffffff; /* Text on primary/accent/danger buttons */
+
+  /* Borders & Shadows */
+  --border-color: #ced4da; /* Standard border color */
+  --border-color-light: #dee2e6; /* Lighter border for list items, separators */
+  --shadow-elevation-low: 0 2px 4px rgba(0, 0, 0, 0.075);
+  --shadow-elevation-medium: 0 4px 8px rgba(0, 0, 0, 0.1);
+  --shadow-elevation-high: 0 5px 15px rgba(0, 0, 0, 0.2); /* Modal shadow */
+
+  /* Buttons */
+  --button-disabled-background: #ced4da; /* Background for disabled buttons */
+  --button-disabled-text: #6c757d; /* Text color for disabled buttons */
+
+  /* Add other global variables as needed */
+}
+
 /* Basic Reset */
 *,
 *::before,
@@ -20,8 +64,8 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   line-height: 1.5;
-  background-color: #f8f9fa; /* Light grey background */
-  color: #212529; /* Dark text color */
+  background-color: var(--background-primary); /* Use variable */
+  color: var(--text-primary); /* Use variable */
 }
 
 /* Explicitly set default styles for h1 to address browser warning */

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { usePlan } from '../../contexts/PlanContext';
 import styles from './MainContent.module.css';
 import { FullPlan, MonthlyMilestone, WeeklyObjective, DailyTask } from '../../types/planTypes';
@@ -32,6 +32,20 @@ const MainContent: React.FC = () => {
     return { totalTasks: total, completedTasks: completed, progressPercentage: percentage };
   }, [plan]);
 
+  const handleTaskToggle = useCallback((taskDay: number) => {
+    if (!plan) return;
+    const taskToToggle = plan.monthlyMilestones?.[selectedMonthIndex]
+      ?.weeklyObjectives?.[selectedWeekIndex]
+      ?.dailyTasks?.find(t => t.day === taskDay);
+
+    if (taskToToggle) {
+      console.log(`[MainContent] Toggling task: Month ${selectedMonthIndex + 1}, Week ${selectedWeekIndex + 1}, Day ${taskDay}. Current status: ${taskToToggle.completed}`);
+      toggleTaskCompletion(selectedMonthIndex, selectedWeekIndex, taskDay);
+    } else {
+      console.error(`[MainContent] Could not find task to toggle: M${selectedMonthIndex+1}, W${selectedWeekIndex+1}, D${taskDay}`);
+    }
+  }, [plan, selectedMonthIndex, selectedWeekIndex, toggleTaskCompletion]);
+
   if (isLoading && !plan) {
     return <div className={styles.mainContent}>Loading plan...</div>;
   }
@@ -46,18 +60,21 @@ const MainContent: React.FC = () => {
 
   const monthsData: MonthlyMilestone[] = plan.monthlyMilestones || [];
 
-  const handleTaskToggle = (taskDay: number) => {
-    if (!plan) return;
-    const taskToToggle = plan.monthlyMilestones?.[selectedMonthIndex]
-      ?.weeklyObjectives?.[selectedWeekIndex]
-      ?.dailyTasks?.find(t => t.day === taskDay);
-
-    if (taskToToggle) {
-      console.log(`[MainContent] Toggling task: Month ${selectedMonthIndex + 1}, Week ${selectedWeekIndex + 1}, Day ${taskDay}. Current status: ${taskToToggle.completed}`);
-      toggleTaskCompletion(selectedMonthIndex, selectedWeekIndex, taskDay);
-    } else {
-      console.error(`[MainContent] Could not find task to toggle: M${selectedMonthIndex+1}, W${selectedWeekIndex+1}, D${taskDay}`);
-    }
+  const renderPlaceholders = (
+    type: 'week' | 'day',
+    totalSlots: number,
+    filledSlots: number,
+    monthIndex: number,
+    weekIndex?: number
+  ) => {
+    const placeholderCount = Math.max(0, totalSlots - filledSlots);
+    return Array.from({ length: placeholderCount }).map((_, i) => {
+      const index = filledSlots + i + 1;
+      const key = type === 'week'
+        ? `placeholder-week-${monthIndex}-${index}`
+        : `placeholder-day-${monthIndex}-${weekIndex}-${index}`;
+      return <PlaceholderCard key={key} type={type} index={index} />;
+    });
   };
 
   return (
@@ -75,7 +92,7 @@ const MainContent: React.FC = () => {
             aria-valuemin={0}
             aria-valuemax={100}
           >
-            {progressPercentage > 10 ? `${progressPercentage}%` : ''}
+            {`${progressPercentage}%`}
           </div>
         </div>
         <p>{completedTasks} of {totalTasks} tasks completed</p>
@@ -113,12 +130,7 @@ const MainContent: React.FC = () => {
               <div className={styles.cardContent}>{week.objective}</div>
             </div>
           ))}
-          {Array.from({ length: Math.max(0, 4 - (monthsData[selectedMonthIndex]?.weeklyObjectives || []).length) }).map((_, i) => (
-            <div key={`placeholder-week-${i}`} className={styles.weekCard}>
-              <div className={styles.cardHeader}>Week {(monthsData[selectedMonthIndex]?.weeklyObjectives || []).length + i + 1}</div>
-              <div className={styles.cardContent}>...</div>
-            </div>
-          ))}
+          {renderPlaceholders('week', 4, monthsData[selectedMonthIndex]?.weeklyObjectives?.length ?? 0, selectedMonthIndex)}
         </div>
       </section>
 
@@ -140,16 +152,28 @@ const MainContent: React.FC = () => {
               <div className={styles.cardContent}>{task.description}</div>
             </div>
           ))}
-          {Array.from({ length: Math.max(0, 7 - (monthsData[selectedMonthIndex]?.weeklyObjectives?.[selectedWeekIndex]?.dailyTasks || []).length) }).map((_, i) => (
-            <div key={`placeholder-day-${selectedMonthIndex}-${selectedWeekIndex}-${i}`} className={`${styles.dayCard} ${styles.placeholderCard}`}>
-              <div className={styles.cardHeader}>Day {(monthsData[selectedMonthIndex]?.weeklyObjectives?.[selectedWeekIndex]?.dailyTasks || []).length + i + 1}</div>
-              <div className={styles.cardContent}>...</div>
-            </div>
-          ))}
+          {renderPlaceholders('day', 7, monthsData[selectedMonthIndex]?.weeklyObjectives?.[selectedWeekIndex]?.dailyTasks?.length ?? 0, selectedMonthIndex, selectedWeekIndex)}
         </div>
       </section>
 
     </main>
+  );
+};
+
+interface PlaceholderCardProps {
+  type: 'week' | 'day';
+  index: number;
+}
+
+const PlaceholderCard: React.FC<PlaceholderCardProps> = ({ type, index }) => {
+  const cardStyle = type === 'week' ? styles.weekCard : styles.dayCard;
+  const headerText = type === 'week' ? `Week ${index}` : `Day ${index}`;
+
+  return (
+    <div className={`${cardStyle} ${styles.placeholderCard}`}>
+      <div className={styles.cardHeader}>{headerText}</div>
+      <div className={styles.cardContent}>...</div>
+    </div>
   );
 };
 

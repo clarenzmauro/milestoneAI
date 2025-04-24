@@ -5,9 +5,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { savePlan } from '../../services/firestoreService';
 
 const PlanModeUI: React.FC = () => {
-  const { plan, isLoading: isPlanLoading, error: planError, generateNewPlan } = usePlan();
+  const { plan, isLoading: isPlanLoading, error: planError } = usePlan();
   const { user } = useAuth();
-  const [goal, setGoal] = useState<string>('');
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<boolean>(false);

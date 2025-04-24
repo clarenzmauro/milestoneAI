@@ -8,20 +8,18 @@ import {
   where,
   getDocs,
   doc,
-  getDoc,
   deleteDoc,
-  Timestamp, // Import Timestamp type if needed for comparisons or display
+  Timestamp, 
   orderBy,
-  writeBatch // Import writeBatch
+  writeBatch 
 } from 'firebase/firestore';
-import { FullPlan } from '../types/planTypes'; // Assuming your FullPlan type is defined here
-import { ChatMessage } from '../types/chatTypes'; // Import shared ChatMessage type
+import { FullPlan } from '../types/planTypes'; 
+import { ChatMessage } from '../types/chatTypes'; 
 
 // --- Firestore Service Functions --- 
 
 // Type definition for the plan data stored in Firestore
 interface PlanDocument extends FullPlan {
-  userId: string;
   createdAt: Timestamp; // Ensure Firestore Timestamp is used
   chatHistory?: ChatMessage[]; // Optional: Store chat history
   interactionMode?: 'plan' | 'chat'; // Optional: Store the mode ('plan' or 'chat')
@@ -47,7 +45,6 @@ export const savePlan = async (userId: string, dataToSave: Partial<PlanDocument>
     // Add the plan as a new document
     const docRef = await addDoc(userPlansCollectionRef, {
       ...dataToSave, // Save all provided data (plan, history, mode)
-      userId: userId,
       createdAt: serverTimestamp() // Use server timestamp for consistency
     });
 
@@ -126,8 +123,8 @@ export const deletePlansByGoal = async (userId: string, goal: string): Promise<v
 
   try {
     const userPlansCollectionRef = collection(firestore, 'users', userId, 'plans');
-    // Query for documents matching the userId and the specific goal
-    const q = query(userPlansCollectionRef, where('userId', '==', userId), where('goal', '==', goal));
+    // Query for documents matching the specific goal (userId is implicit in the path)
+    const q = query(userPlansCollectionRef, where('goal', '==', goal));
 
     const querySnapshot = await getDocs(q);
 
@@ -154,6 +151,3 @@ export const deletePlansByGoal = async (userId: string, goal: string): Promise<v
     throw new Error("Failed to batch delete plans by goal.");
   }
 };
-
-// Optional: Add getPlanById if needed later
-// export const getPlanById = async (userId: string, planId: string): Promise<(FullPlan & { id: string }) | null> => { ... }

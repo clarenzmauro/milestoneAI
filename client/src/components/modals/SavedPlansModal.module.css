@@ -6,7 +6,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.6); /* Darker overlay */
+  background-color: var(--overlay-background); /* Use variable */
   display: flex;
   justify-content: center;
   align-items: center;
@@ -14,10 +14,10 @@
 }
 
 .modalContent {
-  background-color: var(--background-color, #fff);
+  background-color: var(--background-secondary); /* Use variable */
   padding: 1.5rem;
   border-radius: 8px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-elevation-high); /* Use variable */
   max-height: 80vh; /* Limit height */
   display: flex;
   flex-direction: column;
@@ -29,13 +29,13 @@
   align-items: center;
   margin-bottom: 20px;
   padding-bottom: 15px; /* Padding below header */
-  border: none;
+  border: none; /* Explicitly no border for header */
 }
 
 /* Renamed from modalTitle in previous state? Use h2 directly */
 .modalHeader h2 {
   margin: 0;
-  color: var(--text-color);
+  color: var(--text-primary); /* Use variable */
   font-size: 1.3rem;
 }
 
@@ -44,46 +44,41 @@
   border: none;
   font-size: 1.8rem; /* Larger close icon */
   cursor: pointer;
-  color: var(--text-light);
+  color: var(--text-tertiary); /* Use variable */
   padding: 0 5px; /* Padding for easier clicking */
   line-height: 1;
 }
 
 .closeButton:hover {
-  color: var(--text-color);
+  color: var(--text-primary); /* Use variable */
 }
 
 .loadingState,
 .errorState {
   text-align: center;
   padding: 40px 20px; /* More padding */
-  color: var(--text-light);
+  color: var(--text-tertiary); /* Use variable */
   font-style: italic;
   font-size: 1.1em;
 }
 
 .errorState {
-  color: var(--error-color);
+  color: var(--color-danger); /* Use variable */
   font-style: normal;
   font-weight: 500; /* Less bold */
 }
 
-/* Assuming the TSX uses plansList or ul directly */
-.plansList {
-  list-style: none;
-  padding: 0;
-  margin: 0 0 10px 0; /* Space below list */
-}
+/* Assuming the TSX uses plansList or ul directly - .versionList used below */
 
 .plansListContainer {
   overflow-y: auto; /* Enable scroll if content overflows */
-  margin-top: 1rem; 
+  margin-top: 1rem;
   flex-grow: 1; /* Allow container to take remaining space */
 }
 
 .goalGroup {
   margin-bottom: 1rem;
-  border-bottom: 1px solid var(--border-color-light, #eee); /* Separator */
+  border-bottom: 1px solid var(--border-color-light); /* Use variable */
   padding-bottom: 0.5rem; /* Reduced padding */
 }
 
@@ -101,13 +96,18 @@
   transition: background-color 0.2s ease; /* Subtle hover effect */
 }
 
+/* Optional: Add header hover */
+/* .goalGroupHeader:hover {
+  background-color: var(--background-hover-light);
+} */
+
 .goalTitle {
   margin: 0;
   font-size: 1.1rem;
   font-weight: 600; /* Slightly bolder title */
   flex-grow: 1; /* Allow title to take available space */
   margin-right: 1rem; /* Space before button */
-  color: var(--text-primary, #333);
+  color: var(--text-primary); /* Use variable */
 }
 
 .goalHeaderButtons {
@@ -119,8 +119,8 @@
 
 .toggleButton {
   background: none;
-  border: 1px solid var(--border-color, #ccc);
-  color: var(--text-secondary, #555);
+  border: 1px solid var(--border-color); /* Use variable */
+  color: var(--text-secondary); /* Use variable */
   cursor: pointer;
   padding: 0.1rem 0.5rem;
   font-size: 1.2rem; /* Make +/- bigger */
@@ -132,11 +132,12 @@
 }
 
 .toggleButton:hover {
-  background-color: var(--background-secondary, #f0f0f0);
-  border-color: var(--border-color-dark, #bbb);
+  background-color: var(--background-tertiary); /* Use variable */
+  border-color: var(--border-color); /* Keep standard border on hover */
 }
 
 .deleteAllButton {
+  /* Inherits from .deleteButton for base style, can override padding/size here */
   padding: 0.2rem 0.6rem; /* Slightly different padding */
   font-size: 0.9rem;
   margin-right: 0.2rem; /* Small space before collapse button */
@@ -156,27 +157,27 @@
   align-items: center;
   padding: 15px;
   margin-bottom: 12px; /* Space between items */
-  border: 1px solid var(--border-light, #e0e0e0);
+  border: 1px solid var(--border-color-light); /* Use variable */
   border-radius: 6px;
   transition: background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .planItem:hover {
-  background-color: var(--background-light, #f8f8f8);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  background-color: var(--background-hover-light); /* Use variable */
+  box-shadow: var(--shadow-elevation-low); /* Use variable */
 }
 
 .planDetails {
   flex-grow: 1;
   margin-right: 1rem; /* Space between details and buttons */
   font-size: 0.9rem;
-  color: var(--text-secondary);
+  color: var(--text-secondary); /* Use variable */
 }
 
 .planDetails p {
   margin: 0 0 4px 0;
   font-weight: 500;
-  color: var(--text-color);
+  color: var(--text-primary); /* Use variable */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis; /* Add ellipsis for long goals */
@@ -185,7 +186,7 @@
 .planDetails span {
   display: block; /* Ensure timestamp is on its own line if needed */
   font-size: 0.8em;
-  color: var(--text-light);
+  color: var(--text-tertiary); /* Use variable */
   font-style: italic; /* Italicize the date */
 }
 
@@ -198,9 +199,9 @@
 }
 
 .loadButton { /* Separate load button style */
-  background-color: var(--accent-color, #007bff); /* Use a primary theme color or default blue */
-  color: var(--button-text-color, #ffffff); /* Ensure text is light/white for contrast */
-  border: none; 
+  background-color: var(--accent-color); /* Use variable */
+  color: var(--button-text-color); /* Use variable */
+  border: none;
   margin-right: 8px; /* Keep space between buttons */
   padding: 6px 12px;
   border-radius: 4px;
@@ -211,41 +212,45 @@
 }
 
 .loadButton:hover {
-  background-color: var(--accent-color-dark, #0056b3); /* Darken on hover */
+  background-color: var(--accent-color-dark); /* Use variable */
   opacity: 0.9;
 }
 
-.deleteButton { /* Keep delete button specific styles */
+.deleteButton { /* Base delete button style */
   padding: 6px 12px;
   border-radius: 4px;
   cursor: pointer;
-  background-color: var(--danger-color, #dc3545);
-  color: var(--button-text-color, #fff);
-  border: 1px solid var(--danger-color-lighter, #f7cac9);
+  background-color: var(--color-danger); /* Use variable */
+  color: var(--button-text-color); /* Use variable */
+  border: 1px solid var(--color-danger); /* Use variable for border too */
+  transition: background-color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
+  font-size: 0.9rem; /* Ensure consistent font size */
+  font-weight: 500;
 }
 
 .deleteButton:hover { /* Hover for delete */
-  background-color: var(--danger-color-dark, #c82333);
+  background-color: var(--color-danger-hover); /* Use variable */
+  border-color: var(--color-danger-hover); /* Use variable */
   opacity: 0.9;
 }
 
+/* Combined disabled styles */
 .loadButton:disabled,
-.deleteButton:disabled {
+.deleteButton:disabled,
+.toggleButton:disabled {
   opacity: 0.5;
-  cursor: not-allowed; 
-  background-color: var(--button-disabled-bg, #ccc);
-  border: none;
+  cursor: not-allowed;
+  background-color: var(--button-disabled-background); /* Use variable */
+  color: var(--button-disabled-text); /* Use variable for text color */
+  border: none; /* Remove border for disabled state */
 }
 
-.loadingState,
-.errorState {
+/* Ensure .loadingState and .errorState (which were duplicated) use variables */
+.loadingState, /* Style already defined above */
+.errorState { /* Style already defined above */
   text-align: center;
   padding: 1rem;
-  color: var(--text-secondary);
+  /* color: var(--text-tertiary); Use specific color from definition above */
 }
 
-.errorState {
-  color: var(--error-color);
-  font-style: normal;
-  font-weight: 500; /* Less bold */
-}
+/* Error state specific color is already set */
