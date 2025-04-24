@@ -1,7 +1,7 @@
 .mainContent {
   flex: 1;
   padding: 32px 48px;
-  background-color: #f0f2f5;
+  background-color: var(--background-main, #f0f2f5);
   overflow-y: auto;
   height: 100%;
 }
@@ -10,14 +10,14 @@
   font-size: 28px;
   font-weight: 600;
   margin-bottom: 32px;
-  color: #1A1A1A;
+  color: var(--text-primary, #1A1A1A);
 }
 
 .mainContent h2 {
   font-size: 20px;
   font-weight: 600;
   margin: 32px 0 16px;
-  color: #1A1A1A;
+  color: var(--text-primary, #1A1A1A);
 }
 
 /* Grid Containers */
@@ -46,12 +46,12 @@
   font-size: 18px;
   font-weight: 600;
   margin-bottom: 16px;
-  color: #1A1A1A;
+  color: var(--text-primary, #1A1A1A);
 }
 
 /* Card Styles */
 .card {
-  background: white;
+  background: var(--background-card, white);
   border-radius: 8px;
   padding: 16px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -62,37 +62,37 @@
 .monthCard,
 .weekCard,
 .dayCard {
-  background: white;
+  background: var(--background-card, white);
   border-radius: 12px;
   padding: 20px;
   min-height: 140px;
-  border: 1px solid #E5E9ED;
+  border: 1px solid var(--border-color, #E5E9ED);
   display: flex;
   flex-direction: column;
 }
 
 .monthCard {
-  border-top: 4px solid #4A90E2;
+  border-top: 4px solid var(--accent-color-month, #4A90E2);
 }
 
 .weekCard {
-  border-top: 4px solid #50B83C;
+  border-top: 4px solid var(--accent-color-week, #50B83C);
 }
 
 .dayCard {
-  border-top: 4px solid #F5A623;
+  border-top: 4px solid var(--accent-color-day, #F5A623);
 }
 
 .cardHeader {
   font-size: 16px;
   font-weight: 600;
   margin-bottom: 12px;
-  color: #1A1A1A;
+  color: var(--text-primary, #1A1A1A);
 }
 
 .cardContent {
   font-size: 14px;
-  color: #4A4A4A;
+  color: var(--text-secondary, #4A4A4A);
   line-height: 1.5;
   flex: 1;
 }
@@ -103,13 +103,101 @@
   justify-content: center;
   align-items: center;
   height: 100%;
-  color: #666;
-  font-size: 16px;
-  background: rgba(255, 255, 255, 0.8);
-  border-radius: 12px;
-  padding: 24px;
+  flex-direction: column;
+  color: var(--text-secondary, #6c757d);
+  font-size: 1rem;
+  background-color: var(--background-secondary, #f8f9fa);
+  padding: 2rem;
   text-align: center;
-  border: 1px solid #E5E9ED;
+  border: none;
+}
+
+.emptyStateContent {
+  max-width: 450px;
+}
+
+.emptyStateIcon {
+  font-size: 3.5rem;
+  color: var(--accent-color, #007bff);
+  margin-bottom: 1.5rem;
+}
+
+.emptyStateHeading {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-primary, #343a40);
+  margin-bottom: 0.75rem;
+}
+
+.emptyStateText {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--text-secondary, #6c757d);
+}
+
+/* --- Loading State Styles --- */
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  text-align: center;
+  color: var(--text-secondary, #6c757d);
+}
+
+.loadingText {
+  margin-top: 1.5rem;
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--text-primary, #343a40);
+}
+
+/* --- Meet the Team Styles (within Empty State) --- */
+.teamHeading {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--text-primary, #343a40);
+  margin-top: 2.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.teamContainer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2rem;
+  max-width: 100%;
+}
+
+.teamMember {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.2s ease;
+  min-width: 100px;
+}
+
+.teamMember:hover {
+  transform: translateY(-3px);
+}
+
+.teamAvatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  margin-bottom: 0.75rem;
+  object-fit: cover;
+  border: 2px solid var(--border-color, #ddd);
+}
+
+.teamUsername {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-secondary, #4a4a4a);
+  text-align: center;
 }
 
 /* --- Added for Interactivity --- */
@@ -125,22 +213,22 @@
 }
 
 .selected {
-  border: 2px solid var(--primary-color, #4a90e2); /* Use theme color */
-  box-shadow: 0 0 10px rgba(74, 144, 226, 0.3); /* Subtle glow */
-  background-color: #f0f8ff; /* Light blue background */
+  border: 2px solid var(--primary-color, #4a90e2);
+  box-shadow: 0 0 10px rgba(74, 144, 226, 0.3);
+  background-color: var(--selected-background, #f0f8ff);
 }
 
 .card.selected {
   border: 2px solid var(--primary-color, #4a90e2);
   box-shadow: 0 0 10px rgba(74, 144, 226, 0.3);
-  background-color: #f0f8ff; /* AliceBlue */
+  background-color: var(--selected-background, #f0f8ff);
 }
 
 /* --- Progress Bar Styles --- */
 .progressSection {
   margin-bottom: 2rem;
   padding: 1rem;
-  background-color: var(--background-secondary); /* Use existing variable */
+  background-color: var(--background-secondary);
   border-radius: 8px;
   box-shadow: var(--shadow-elevation-low);
 }
@@ -155,26 +243,26 @@
 .progressBarContainer {
   width: 100%;
   background-color: var(--background-tertiary, #e9ecef);
-  border-radius: 15px; /* Make it pill-shaped */
-  height: 28px; /* Slightly taller */
+  border-radius: 15px;
+  height: 28px;
   overflow: hidden;
-  margin-bottom: 0.75rem; /* More space below */
+  margin-bottom: 0.75rem;
   border: 1px solid var(--border-color, #ced4da);
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1); /* Subtle inset shadow */
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .progressBarFill {
   height: 100%;
-  background-color: var(--accent-color, #007bff); /* Fallback */
+  background-color: var(--accent-color, #007bff);
   background: linear-gradient(90deg, var(--accent-color-light, #5cadff), var(--accent-color, #007bff));
-  color: var(--button-text-color); /* Text color inside the bar */
+  color: var(--button-text-color, white);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.85rem; /* Slightly smaller text */
-  font-weight: 500; /* Less bold */
+  font-size: 0.85rem;
+  font-weight: 500;
   text-align: center;
-  transition: width 0.5s ease-in-out; /* Smooth transition */
+  transition: width 0.5s ease-in-out;
   white-space: nowrap;
 }
 
@@ -182,34 +270,33 @@
   text-align: center;
   font-size: 0.9rem;
   color: var(--text-secondary);
-  margin-top: 0.5rem; /* Ensure space above text */
+  margin-top: 0.5rem;
 }
 
 /* --- Task Checkbox Styles --- */
 .dayCard .cardHeader {
   display: flex;
-  justify-content: space-between; /* Pushes checkbox to the right */
-  align-items: center; /* Vertically aligns title and checkbox */
+  justify-content: space-between;
+  align-items: center;
 }
 
 .taskCheckbox {
-  margin-left: 10px; /* Space between day number and checkbox */
+  margin-left: 10px;
   cursor: pointer;
-  /* Basic styling, customize further if needed */
   width: 18px;
   height: 18px;
-  accent-color: var(--accent-color); /* Modern way to color checkboxes */
+  accent-color: var(--accent-color, #007bff);
 }
 
 /* Style for placeholder cards to make them less prominent */
 .placeholderCard {
-  background-color: var(--background-tertiary);
+  background-color: var(--background-tertiary, #e9ecef);
   cursor: default;
 }
 
 .placeholderCard .cardHeader,
 .placeholderCard .cardContent {
-  color: var(--text-disabled);
+  color: var(--text-disabled, #adb5bd);
 }
 
 /* Responsive Design */

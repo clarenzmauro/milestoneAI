@@ -1,5 +1,5 @@
 // src/components/modals/SavedPlansModal.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import styles from './SavedPlansModal.module.css';
 import { useAuth } from '../../contexts/AuthContext';
 import { FullPlan } from '../../types/planTypes';
@@ -40,7 +40,7 @@ const SavedPlansModal: React.FC<SavedPlansModalProps> = ({ isOpen, onClose, onLo
   const [expandedGoals, setExpandedGoals] = useState<Record<string, boolean>>({});
   const [deletingGoal, setDeletingGoal] = useState<string | null>(null);
 
-  const fetchPlans = async () => {
+  const fetchPlans = useCallback(async () => {
     if (!user) return;
     setIsLoading(true);
     setError(null);
@@ -54,14 +54,14 @@ const SavedPlansModal: React.FC<SavedPlansModalProps> = ({ isOpen, onClose, onLo
       setIsLoading(false);
       setDeletingId(null); // Clear deletion indicator
     }
-  };
+  }, [user]);
 
   // Fetch plans when the modal opens and the user is available
   useEffect(() => {
     if (isOpen && user) {
       fetchPlans();
     }
-  }, [isOpen, user]);
+  }, [isOpen, user, fetchPlans]);
 
   // Group plans whenever rawPlans changes
   useEffect(() => {

@@ -42,6 +42,7 @@
   flex-direction: column;
   transition: width 0.3s ease-in-out;
   overflow: hidden;
+  border-right: 1px solid var(--color-border); /* Added border for separation */
 }
 
 .sidebar.collapsed {
