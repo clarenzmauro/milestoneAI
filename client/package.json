@@ -17,13 +17,13 @@
     "openai": "^4.95.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "react-hot-toast": "^2.5.2",
     "react-icons": "^5.5.0",
     "react-markdown": "^10.1.0",
     "react-modal": "^3.16.3",
     "react-scripts": "5.0.1",
     "react-spinners": "^0.17.0",
     "react-toastify": "^11.0.5",
-    "typescript": "^4.9.5",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
@@ -51,6 +51,7 @@
     ]
   },
   "devDependencies": {
-    "@types/trusted-types": "^2.0.7"
+    "@types/trusted-types": "^2.0.7",
+    "typescript": "^5.8.3"
   }
 }

@@ -11,6 +11,8 @@
   font-weight: 600;
   margin-bottom: 32px;
   color: var(--text-primary, #1A1A1A);
+  margin-top: 0;
+  margin-bottom: 20px;
 }
 
 .mainContent h2 {
@@ -228,7 +230,7 @@
 .progressSection {
   margin-bottom: 2rem;
   padding: 1rem;
-  background-color: var(--background-secondary);
+  background-color: #f9f9f9;
   border-radius: 8px;
   box-shadow: var(--shadow-elevation-low);
 }
@@ -297,6 +299,36 @@
 .placeholderCard .cardHeader,
 .placeholderCard .cardContent {
   color: var(--text-disabled, #adb5bd);
+}
+
+/* Styles for the container holding the H1 and the button */
+.goalHeader {
+  display: flex;
+  align-items: center; /* Align items vertically */
+  justify-content: space-between; /* Put space between H1 and button */
+  margin-bottom: 20px; /* Existing margin for H1 */
+}
+
+.goalHeader h1 {
+  margin: 0; /* Remove default margin from H1 */
+  flex-grow: 1; /* Allow H1 to take up space */
+}
+
+/* Style for the achievements trophy button */
+.achievementsButton {
+  background: none;
+  border: none;
+  padding: 5px 10px;
+  margin-left: 15px; /* Space between title and button */
+  cursor: pointer;
+  color: #b0a47a; /* A gold-ish color */
+  font-size: 1.5rem; /* Make icon larger */
+  transition: color 0.2s ease;
+  line-height: 1; /* Ensure button doesn't increase header height */
+}
+
+.achievementsButton:hover {
+  color: #d4af37; /* Brighter gold on hover */
 }
 
 /* Responsive Design */

@@ -2,45 +2,15 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { usePlan } from '../../contexts/PlanContext';
 import styles from './MainContent.module.css';
 import { MonthlyMilestone, WeeklyObjective, DailyTask } from '../../types/planTypes';
-import { FaLightbulb } from 'react-icons/fa';
+import { FaLightbulb, FaTrophy } from 'react-icons/fa';
 import BarLoader from "react-spinners/BarLoader";
-
-const teamMembers = [
-  {
-    name: 'Clarenz Mauro',
-    username: 'clarenzmauro',
-    link: 'https://github.com/clarenzmauro',
-    avatarUrl: 'https://avatars.githubusercontent.com/u/93075473?v=4',
-  },
-  {
-    name: 'Jeroein Magno',
-    username: 'JeroeinMagno',
-    link: 'https://github.com/JeroeinMagno',
-    avatarUrl: 'https://avatars.githubusercontent.com/u/116137553?v=4',
-  },
-  {
-    name: 'Jett Manalo',
-    username: 'jettmanalo',
-    link: 'https://github.com/jettmanalo',
-    avatarUrl: 'https://avatars.githubusercontent.com/u/164733601?v=4',
-  },
-  {
-    name: 'Louis Vincent Crisaldo',
-    username: 'Louis Vincent Crisaldo',
-    link: 'https://github.com/LudwigWei',
-    avatarUrl: 'https://avatars.githubusercontent.com/u/129668033?v=4',
-  },
-  {
-    name: 'Marc Juaren',
-    username: 'MarcJuaren',
-    link: 'https://github.com/Emjiii',
-    avatarUrl: 'https://avatars.githubusercontent.com/u/124160084?v=4',
-  }
-];
+import AchievementsModal from '../modals/AchievementsModal';
+import { teamMembers } from '../../config/team';
 
 const MainContent: React.FC = () => {
   const { plan, isLoading, error, toggleTaskCompletion } = usePlan();
   const [selectedMonthIndex, setSelectedMonthIndex] = useState<number>(0);
+  const [isAchievementsModalOpen, setIsAchievementsModalOpen] = useState<boolean>(false);
   const [selectedWeekIndex, setSelectedWeekIndex] = useState<number>(0);
 
   const { totalTasks, completedTasks, progressPercentage } = useMemo(() => {
@@ -74,7 +44,6 @@ const MainContent: React.FC = () => {
 
     if (taskToToggle) {
       toggleTaskCompletion(selectedMonthIndex, selectedWeekIndex, taskDay);
-    } else {
     }
   }, [plan, selectedMonthIndex, selectedWeekIndex, toggleTaskCompletion]);
 
@@ -155,7 +124,18 @@ const MainContent: React.FC = () => {
 
   return (
     <main className={styles.mainContent}>
-      <h1>Goal: {plan.goal}</h1>
+      <div className={styles.goalHeader}>
+        <h1>Goal: {plan.goal}</h1>
+        {plan && (
+           <button 
+             onClick={() => setIsAchievementsModalOpen(true)} 
+             className={styles.achievementsButton} 
+             title="View Achievements"
+           >
+             <FaTrophy />
+           </button>
+        )}
+      </div>
 
       <section className={styles.progressSection}>
         <h2>Overall Progress</h2>
@@ -231,6 +211,11 @@ const MainContent: React.FC = () => {
           {renderPlaceholders('day', 7, monthsData[selectedMonthIndex]?.weeklyObjectives?.[selectedWeekIndex]?.dailyTasks?.length ?? 0, selectedMonthIndex, selectedWeekIndex)}
         </div>
       </section>
+
+      <AchievementsModal 
+        isOpen={isAchievementsModalOpen}
+        onClose={() => setIsAchievementsModalOpen(false)}
+      />
 
     </main>
   );

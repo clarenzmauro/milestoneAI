@@ -27,6 +27,7 @@ export interface FullPlan {
   monthlyMilestones: MonthlyMilestone[];
   chatHistory?: ChatMessage[];
   interactionMode?: InteractionMode;
+  unlockedAchievements?: { [achievementId: string]: boolean }; // Added for achievements
 }
 
 // Type guard to check if an object is a valid FullPlan
@@ -59,6 +60,14 @@ export const isFullPlan = (obj: any): obj is FullPlan => {
                 typeof d.completed === 'boolean' // Updated check
             )
         )
-    )
+    ) &&
+    // Check for optional unlockedAchievements: must be absent or an object with boolean values
+    (obj.unlockedAchievements === undefined ||
+      (typeof obj.unlockedAchievements === 'object' &&
+        obj.unlockedAchievements !== null &&
+        !Array.isArray(obj.unlockedAchievements) && // Ensure it's not an array
+        Object.values(obj.unlockedAchievements).every(
+          (value: any) => typeof value === 'boolean'
+        )))
   );
 };

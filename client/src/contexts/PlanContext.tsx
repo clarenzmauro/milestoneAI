@@ -6,6 +6,9 @@ import { useAuth } from './AuthContext';
 import { savePlan } from '../services/firestoreService';
 import { ChatMessage } from '../types/chatTypes';
 import { InteractionMode } from '../types/generalTypes';
+import { checkAndUnlockAchievements } from '../services/achievementService';
+import { AchievementDefinition } from '../config/achievements';
+import toast from 'react-hot-toast';
 
 // 1. Define the shape of the context data
 interface IPlanContext {
@@ -66,15 +69,17 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
       const parsedPlan = parsePlanString(rawPlanString, trimmedGoal);
 
       if (parsedPlan) {
-        setPlanState(parsedPlan);
-        // setCurrentChatHistory and setCurrentInteractionMode already set
+        // --- Check for initial achievements on plan generation ---
+        const { updatedPlan: planWithInitialAchievements } = checkAndUnlockAchievements(parsedPlan);
+        setPlanState(planWithInitialAchievements); // Set state with initial achievements unlocked
+        // Note: We don't trigger toasts here, only on task completion later.
 
-        // --- Auto-save if user is logged in --- (Use the saveCurrentPlan logic)
+        // --- Auto-save if user is logged in ---
         if (user) {
            // Construct payload for saving
             const planToSave: FullPlan = {
-                ...parsedPlan,
-                chatHistory: chatHistory,       // Include metadata for saving
+                ...planWithInitialAchievements, // Save the plan *with* initial achievements
+                chatHistory: chatHistory,
                 interactionMode: interactionMode,
             };
           try {
@@ -130,16 +135,17 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
       const parsedPlan = parsePlanString(planString, goalForParsing);
 
       if (parsedPlan) {
-        console.log('[PlanContext] Plan string parsed successfully. Updating state.');
-        setPlanState(parsedPlan);
-        setIsLoading(false);
+        // --- Check for initial achievements on plan load from string ---
+        const { updatedPlan: planWithInitialAchievements } = checkAndUnlockAchievements(parsedPlan);
+        setPlanState(planWithInitialAchievements); // Set state with initial achievements unlocked
+        // Note: We don't trigger toasts here.
 
-        // --- Auto-save updated plan if user is logged in --- (Use saveCurrentPlan logic)
+        // --- Auto-save if user is logged in ---
         if (user) {
            // Construct payload for saving
             const planToSave: FullPlan = {
-                ...parsedPlan,
-                chatHistory: chatHistory,       // Include metadata for saving
+                ...planWithInitialAchievements, // Save the plan *with* initial achievements
+                chatHistory: chatHistory,
                 interactionMode: interactionMode,
             };
           try {
@@ -153,6 +159,7 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
         }
         // --- End auto-save ---
 
+        setIsLoading(false);
         return true;
       } else {
         console.error('[PlanContext] Failed to parse the updated plan string. String:', planString);
@@ -176,14 +183,12 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
 
   // Function to directly set the plan state, usually when loading a saved plan
   const setPlan = (loadedPlan: FullPlan, chatHistory?: ChatMessage[], interactionMode?: InteractionMode) => {
-    console.log('[PlanContext] Setting plan directly:', loadedPlan.goal);
-    // Separate core plan data from metadata before setting state
-    const { chatHistory: loadedHistory, interactionMode: loadedMode, ...corePlanData } = loadedPlan;
-
-    setPlanState(corePlanData); // Set only core plan data
-    setCurrentChatHistory(chatHistory ?? loadedHistory ?? []); // Set history from args or loaded data or default
-    setCurrentInteractionMode(interactionMode ?? loadedMode ?? 'chat'); // Set mode from args or loaded data or default
-
+    console.log('[PlanContext] Setting plan state directly (loading saved plan). Mode:', interactionMode);
+    // Ensure achievements are checked on load, but don't trigger toasts
+    const { updatedPlan: planWithAchievements } = checkAndUnlockAchievements(loadedPlan);
+    setPlanState(planWithAchievements);
+    setCurrentChatHistory(chatHistory || loadedPlan.chatHistory || []); // Use provided or stored history
+    setCurrentInteractionMode(interactionMode || loadedPlan.interactionMode || 'chat'); // Use provided or stored mode
     setError(null); // Clear any previous errors when setting a new plan
     setIsLoading(false); // Ensure loading is false
   };
@@ -225,44 +230,77 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
   const toggleTaskCompletion = async (monthIndex: number, weekIndex: number, taskDay: number) => {
     if (!plan) return; // No plan loaded
 
-    // Create a deep copy to avoid direct state mutation
-    const updatedPlan = JSON.parse(JSON.stringify(plan)) as FullPlan;
+    const originalPlanState = plan; // Keep a reference to revert if save fails
+    let planAfterToggle: FullPlan | null = null; // To hold state after local toggle
+    let newlyUnlockedAchievements: AchievementDefinition[] = [];
 
+    // --- 1. Optimistic UI Update & Achievement Check ---
     try {
-      const task = updatedPlan.monthlyMilestones?.[monthIndex]?.weeklyObjectives?.[weekIndex]?.dailyTasks?.find(t => t.day === taskDay);
+      // Create a deep copy for local modification
+      const tempUpdatedPlan = JSON.parse(JSON.stringify(originalPlanState)) as FullPlan;
+      const task = tempUpdatedPlan.monthlyMilestones?.[monthIndex]?.weeklyObjectives?.[weekIndex]?.dailyTasks?.find(t => t.day === taskDay);
 
       if (task) {
-        task.completed = !task.completed;
+        task.completed = !task.completed; // Toggle status
         console.log(`[PlanContext] Toggled task completion: Month ${monthIndex + 1}, Week ${weekIndex + 1}, Day ${taskDay} to ${task.completed}`);
-        setPlanState(updatedPlan); // Update local state immediately for responsiveness
 
-        // Persist the change if user is logged in using saveCurrentPlan logic
-        if (user) {
-           // Combine the *updated* core plan with the *current* metadata from state
-            const planToSave: FullPlan = {
-                ...updatedPlan, // Use the locally modified plan
-                chatHistory: currentChatHistory, // Use metadata from state
-                interactionMode: currentInteractionMode, // Use metadata from state
-            };
-           try {
-               console.log('[PlanContext] Saving plan after task toggle for user:', user.uid);
-               await savePlan(user.uid, planToSave);
-               console.log('[PlanContext] Saved plan after task toggle.');
-           } catch (saveError) {
-                console.error('[PlanContext] Save after task toggle failed:', saveError);
-                // Revert optimistic UI update on save failure
-                setPlanState(plan); // Revert to the original plan state
-                setError('Failed to save task update. Please try again.');
-           }
+        // Only check achievements and show toasts when completing a task
+        if (task.completed) {
+          const achievementResult = checkAndUnlockAchievements(tempUpdatedPlan);
+          planAfterToggle = achievementResult.updatedPlan; // Plan with potentially new achievements
+          newlyUnlockedAchievements = achievementResult.newlyUnlocked;
+        } else {
+          // If un-completing, just use the plan with the toggled task
+          planAfterToggle = tempUpdatedPlan;
         }
+
+        setPlanState(planAfterToggle); // Update local state immediately
+
+        // Trigger toasts *after* state update
+        newlyUnlockedAchievements.forEach(ach => {
+           console.log(`[Achievement Unlocked] ${ach.id}: ${ach.name}`);
+           toast.success(`Achievement Unlocked: ${ach.name}!`, {
+             icon: '🏆', // Example: Use an emoji icon
+             duration: 4000, // Show for 4 seconds
+           });
+        });
+
       } else {
         console.error(`[PlanContext] Task not found for toggling: Month ${monthIndex + 1}, Week ${weekIndex + 1}, Day ${taskDay}`);
+        return; // Exit if task not found
       }
     } catch (error) {
-        // This catch block likely handles errors in the JSON parse/stringify or finding the task
-        console.error('[PlanContext] Error toggling task completion (local operation):', error);
-        setError('An internal error occurred while updating the task.');
-        // No need to revert here as the state wasn't successfully updated before saving attempt
+      // Error during local update/check (e.g., JSON parsing)
+      console.error('[PlanContext] Error during local task toggle/achievement check:', error);
+      setError('An internal error occurred while updating the task.');
+      setPlanState(originalPlanState); // Revert to original state
+      return; // Exit if local update failed
+    }
+
+
+    // --- 2. Persist Change ---
+    if (user && planAfterToggle) { // Ensure planAfterToggle is not null
+      const planToSave: FullPlan = {
+          ...planAfterToggle, // Use the state *after* local toggle & achievement check
+          chatHistory: currentChatHistory,
+          interactionMode: currentInteractionMode,
+      };
+      try {
+          console.log('[PlanContext] Saving plan after task toggle for user:', user.uid);
+          await savePlan(user.uid, planToSave);
+          console.log('[PlanContext] Saved plan after task toggle.');
+          // Save successful, optimistic update is now confirmed
+      } catch (saveError) {
+          console.error('[PlanContext] Save after task toggle failed:', saveError);
+          setError('Failed to save task update. Reverting change.');
+          toast.error('Failed to save task update.');
+          // Revert optimistic UI update on save failure
+          setPlanState(originalPlanState); // Revert to the state before the toggle
+      }
+    } else if (!user) {
+        console.log('[PlanContext] User not logged in, task toggle not saved to backend.');
+        // Optional: Give feedback that progress isn't saved?
+        // toast.info('Log in to save your progress.');
     }
   };
 
