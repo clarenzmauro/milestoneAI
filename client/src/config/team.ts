@@ -26,12 +26,12 @@ export const teamMembers: TeamMember[] = [
   },
   {
     name: 'Louis Vincent Crisaldo',
-    username: 'Louis Vincent Crisaldo',
+    username: 'LudwigWei',
     link: 'https://github.com/LudwigWei',
     avatarUrl: 'https://avatars.githubusercontent.com/u/129668033?v=4',
   },
   {
-    name: 'Marc Juaren',
+    name: 'Marc Juaren Gamilla',
     username: 'MarcJuaren',
     link: 'https://github.com/Emjiii',
     avatarUrl: 'https://avatars.githubusercontent.com/u/124160084?v=4',
