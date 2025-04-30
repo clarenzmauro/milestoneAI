@@ -11,7 +11,7 @@ import { AchievementDefinition } from '../config/achievements';
 import toast from 'react-hot-toast';
 
 // 1. Define the shape of the context data
-interface IPlanContext {
+export interface IPlanContext {
   plan: FullPlan | null;
   isLoading: boolean;
   error: string | null;
@@ -26,7 +26,7 @@ interface IPlanContext {
 }
 
 // 2. Create the Context
-const PlanContext = createContext<IPlanContext | undefined>(undefined);
+export const PlanContext = createContext<IPlanContext | undefined>(undefined);
 
 // 3. Create the Provider Component
 interface PlanProviderProps {
