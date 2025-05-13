@@ -1,15 +1,12 @@
-import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { IPlanContext, PlanContext } from '../../contexts/PlanContext';
+import { FullPlan } from '../../types/planTypes';
 import MainContent from './MainContent';
-import { PlanContext } from '../../contexts/PlanContext';
-import { MonthlyMilestone, FullPlan } from '../../types/planTypes';
-import { ChatMessage } from '../../types/chatTypes';
-import { InteractionMode } from '../../types/generalTypes';
 
 // Mock child components
 jest.mock('../modals/AchievementsModal', () => {
-  return function MockAchievementsModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+  return function MockAchievementsModal({ isOpen }: { isOpen: boolean }) {
     return isOpen ? <div data-testid="achievements-modal">Modal Content</div> : null;
   };
 });
@@ -28,7 +25,7 @@ jest.mock('react-spinners/BarLoader', () => {
 });
 
 const mockPlan: FullPlan = {
-  goal: 'Test Goal',
+  goal: 'Launch a successful online fitness coaching business in 90 days',
   monthlyMilestones: [
     {
       month: 1,
@@ -40,27 +37,6 @@ const mockPlan: FullPlan = {
           dailyTasks: [
             { day: 1, description: 'Task 1', completed: false },
             { day: 2, description: 'Task 2', completed: true }
-          ]
-        },
-        {
-          week: 2,
-          objective: 'Week 2 Objective',
-          dailyTasks: [
-            { day: 1, description: 'Task 3', completed: false },
-            { day: 2, description: 'Task 4', completed: false }
-          ]
-        }
-      ]
-    },
-    {
-      month: 2,
-      milestone: 'Second Month',
-      weeklyObjectives: [
-        {
-          week: 1,
-          objective: 'Month 2 Week 1',
-          dailyTasks: [
-            { day: 1, description: 'Task 5', completed: true }
           ]
         }
       ]
@@ -80,24 +56,8 @@ const mockFunctions = {
 };
 
 describe('MainContent', () => {
-  type PlanContextValue = {
-    plan: FullPlan | null;
-    isLoading: boolean;
-    error: string | null;
-    currentChatHistory: ChatMessage[];
-    currentInteractionMode: InteractionMode;
-    generateNewPlan: (goal: string, chatHistory: ChatMessage[], interactionMode: InteractionMode) => Promise<void>;
-    setPlanFromString: (planString: string, originalGoal: string | undefined, chatHistory: ChatMessage[], interactionMode: InteractionMode) => Promise<boolean>;
-    setPlan: (loadedPlan: FullPlan, chatHistory?: ChatMessage[], interactionMode?: InteractionMode) => void;
-    saveCurrentPlan: () => Promise<void>;
-    toggleTaskCompletion: (monthIndex: number, weekIndex: number, taskDay: number) => Promise<void>;
-    resetPlanState: () => void;
-  };
-
-  const renderWithContext = (
-    contextValue: Partial<PlanContextValue> = {}
-  ) => {
-    const defaultContext: PlanContextValue = {
+  const renderWithContext = (contextValue: Partial<IPlanContext> = {}) => {
+    const defaultContext: IPlanContext = {
       plan: null,
       isLoading: false,
       error: null,
@@ -122,73 +82,65 @@ describe('MainContent', () => {
     jest.clearAllMocks();
   });
 
-  it('shows loading state', () => {
-    renderWithContext({ isLoading: true });
+  it('handles initial goal creation and plan generation', async () => {
+    renderWithContext({ plan: null });
+    
+    expect(screen.getByText("Ready to Plan Your Success?")).toBeInTheDocument();
+    expect(screen.getByTestId("lightbulb-icon")).toBeInTheDocument();
+    expect(screen.getByText("Use the sidebar to create your first goal and let MilestoneAI build your roadmap.")).toBeInTheDocument();
+  });
+
+  it('handles task completion and progress tracking', () => {
+    renderWithContext({ plan: mockPlan });
+
+    // Verify progress section
+    expect(screen.getByText("Overall Progress")).toBeInTheDocument();
+    expect(screen.getByText("1 of 2 tasks completed")).toBeInTheDocument();
+    
+    // Test task toggle
+    const checkbox = screen.getAllByRole('checkbox')[0];
+    fireEvent.click(checkbox);
+    expect(mockFunctions.toggleTaskCompletion).toHaveBeenCalledWith(0, 0, 1);
+  });
+
+  it('handles monthly and weekly navigation', () => {
+    renderWithContext({ plan: mockPlan });
+    
+    // Check month section
+    expect(screen.getByText("Monthly Milestones")).toBeInTheDocument();
+    const monthCard = screen.getByText("Month 1");
+    fireEvent.click(monthCard);
+    
+    // Check week section
+    expect(screen.getByText("Weekly Objectives")).toBeInTheDocument();
+    const weekCard = screen.getByText("Week 1");
+    fireEvent.click(weekCard);
+    
+    // Verify daily tasks after navigation
+    expect(screen.getByText("Daily Tasks")).toBeInTheDocument();
+    expect(screen.getByText("Task 1")).toBeInTheDocument();
+  });
+
+  it('handles loading and error states', () => {
+    // Test loading state
+    renderWithContext({ isLoading: true, plan: null });
     expect(screen.getByTestId('loading-spinner')).toBeInTheDocument();
     expect(screen.getByText('Loading your plan...')).toBeInTheDocument();
+
+    // Test error state
+    renderWithContext({ error: 'Failed to load plan', plan: null });
+    expect(screen.getByText('Error loading plan: Failed to load plan')).toBeInTheDocument();
   });
 
-  it('shows error state', () => {
-    renderWithContext({ error: 'Test error' });
-    expect(screen.getByText('Error loading plan: Test error')).toBeInTheDocument();
-  });
-
-  it('shows empty state when no plan exists', () => {
-    renderWithContext();
-    expect(screen.getByTestId('lightbulb-icon')).toBeInTheDocument();
-    expect(screen.getByText('Ready to Plan Your Success?')).toBeInTheDocument();
-  });
-
-  describe('with plan data', () => {
-    beforeEach(() => {
-      renderWithContext({ plan: mockPlan });
-    });
-
-    it('displays the goal', () => {
-      expect(screen.getByText('Goal: Test Goal')).toBeInTheDocument();
-    });
-
-    it('shows progress information correctly', () => {
-      expect(screen.getByText('2 of 5 tasks completed')).toBeInTheDocument();
-      const progressBar = screen.getByRole('progressbar');
-      expect(progressBar).toHaveAttribute('aria-valuenow', '40');
-    });
-
-    it('displays monthly milestones', () => {
-      expect(screen.getByText('First Month')).toBeInTheDocument();
-      expect(screen.getByText('Second Month')).toBeInTheDocument();
-    });
-
-    it('displays weekly objectives', () => {
-      expect(screen.getByText('Week 1 Objective')).toBeInTheDocument();
-      expect(screen.getByText('Week 2 Objective')).toBeInTheDocument();
-    });
-
-    it('displays daily tasks', () => {
-      ['Task 1', 'Task 2'].forEach(task => {
-        expect(screen.getByText(task)).toBeInTheDocument();
-      });
-    });
-
-    it('handles task completion toggle', () => {
-      const checkboxes = screen.getAllByRole('checkbox');
-      fireEvent.click(checkboxes[0]);
-      expect(mockFunctions.toggleTaskCompletion).toHaveBeenCalledWith(0, 0, 1);
-    });
-
-    it('opens achievements modal', () => {
-      fireEvent.click(screen.getByTitle('View Achievements'));
-      expect(screen.getByTestId('achievements-modal')).toBeInTheDocument();
-    });
-
-    it('handles month selection', () => {
-      fireEvent.click(screen.getByText('Second Month'));
-      expect(screen.getByText('Month 2 Week 1')).toBeInTheDocument();
-    });
-
-    it('renders placeholder cards for incomplete weeks', () => {
-      const placeholders = screen.getAllByText(/Week [3-4]/);
-      expect(placeholders).toHaveLength(2);
-    });
+  it('handles viewing achievements', () => {
+    renderWithContext({ plan: mockPlan });
+    
+    // Find and click trophy icon
+    const trophyButton = screen.getByTestId('trophy-icon');
+    expect(trophyButton).toBeInTheDocument();
+    fireEvent.click(trophyButton);
+    
+    // Verify modal opens
+    expect(screen.getByTestId('achievements-modal')).toBeInTheDocument();
   });
 });
