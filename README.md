@@ -1,4 +1,4 @@
-# MilestoneAI
+# 🚀 MilestoneAI
 
 A comprehensive 90-day goal planning application powered by Google's Gemini 2.5 Flash AI model.
 
