@@ -1,5 +1,4 @@
 import { FullPlan } from '../types/planTypes';
-import { InteractionMode } from '../types/generalTypes';
 
 // Base URL from environment variable or default to localhost
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001/api';
@@ -69,17 +68,15 @@ type GeminiHistoryItem = { role: 'user' | 'model'; parts: string };
 export const chatWithAI = async (
   message: string,
   history: GeminiHistoryItem[], // Use specific type alias
-  plan: FullPlan | null,
-  mode: InteractionMode
+  plan: FullPlan | null
 ): Promise<string> => {
-  console.log(`[Client] Sending chat message: "${message}" with mode: ${mode} and plan context to backend proxy...`);
+  console.log(`[Client] Sending chat message: "${message}" with plan context to backend proxy...`);
   try {
     // Use the fetch helper
     const data = await _fetchAPI<{ response?: string }>('chat', {
       message,
       history,
-      plan,
-      mode
+      plan
     });
 
     if (!data.response) {

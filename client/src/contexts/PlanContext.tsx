@@ -5,7 +5,6 @@ import { parsePlanString } from '../utils/planParser';
 import { useAuth } from './SupabaseAuthContext';
 import { savePlan } from '../services/supabaseService';
 import { ChatMessage } from '../types/chatTypes';
-import { InteractionMode } from '../types/generalTypes';
 import { checkAndUnlockAchievements } from '../services/achievementService';
 import { AchievementDefinition } from '../config/achievements';
 import toast from 'react-hot-toast';
@@ -15,11 +14,9 @@ export interface IPlanContext {
   plan: FullPlan | null;
   isLoading: boolean;
   error: string | null;
-  currentChatHistory: ChatMessage[];
-  currentInteractionMode: InteractionMode;
-  generateNewPlan: (goal: string, chatHistory: ChatMessage[], interactionMode: InteractionMode) => Promise<void>;
-  setPlanFromString: (planString: string, originalGoal: string | undefined, chatHistory: ChatMessage[], interactionMode: InteractionMode) => Promise<boolean>;
-  setPlan: (loadedPlan: FullPlan, chatHistory?: ChatMessage[], interactionMode?: InteractionMode) => void;
+  generateNewPlan: (goal: string) => Promise<void>;
+  setPlanFromString: (planString: string, originalGoal: string | undefined) => Promise<boolean>;
+  setPlan: (loadedPlan: FullPlan) => void;
   saveCurrentPlan: () => Promise<void>;
   toggleTaskCompletion: (monthIndex: number, weekIndex: number, taskDay: number) => Promise<void>;
   resetPlanState: () => void;
@@ -37,8 +34,6 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
   const [plan, setPlanState] = useState<FullPlan | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [currentChatHistory, setCurrentChatHistory] = useState<ChatMessage[]>([]);
-  const [currentInteractionMode, setCurrentInteractionMode] = useState<InteractionMode>('chat'); // Default mode
   const { user } = useAuth();
 
   // Function to reset all relevant plan states
@@ -47,12 +42,10 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
     setPlanState(null);
     setIsLoading(false);
     setError(null);
-    setCurrentChatHistory([]);
-    setCurrentInteractionMode('chat'); // Reset to default mode
   };
 
   // Function to be called by components to generate/update the plan
-  const generateNewPlan = async (goal: string, chatHistory: ChatMessage[], interactionMode: InteractionMode) => {
+  const generateNewPlan = async (goal: string) => {
     const trimmedGoal = goal.trim();
     if (!trimmedGoal) {
       setError('Goal cannot be empty.');
@@ -61,8 +54,6 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
     setIsLoading(true);
     setError(null);
     setPlanState(null);
-    setCurrentChatHistory(chatHistory); // Store history
-    setCurrentInteractionMode(interactionMode); // Store mode
 
     try {
       const rawPlanString = await apiGeneratePlan(trimmedGoal);
@@ -76,15 +67,9 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
 
         // --- Auto-save if user is logged in ---
         if (user) {
-           // Construct payload for saving
-            const planToSave: FullPlan = {
-                ...planWithInitialAchievements, // Save the plan *with* initial achievements
-                chatHistory: chatHistory,
-                interactionMode: interactionMode,
-            };
           try {
             console.log('[PlanContext] Auto-saving newly generated plan for user:', user.id);
-            await savePlan(user.id, planToSave);
+            await savePlan(user.id, planWithInitialAchievements);
             console.log('[PlanContext] Auto-save successful.');
           } catch (saveError) {
             console.error('[PlanContext] Auto-save failed:', saveError);
@@ -96,9 +81,6 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
         console.error('Failed to parse the generated plan string. Raw string:', rawPlanString);
         setError('AI generated a plan, but it could not be structured correctly.');
         setPlanState(null);
-        // Clear metadata if plan generation fails?
-        // setCurrentChatHistory([]);
-        // setCurrentInteractionMode('chat');
       }
 
     } catch (err) {
@@ -114,21 +96,16 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
       }
       console.error('-----------------------------------------');
       setPlanState(null);
-       // Clear metadata on error
-       setCurrentChatHistory([]);
-       setCurrentInteractionMode('chat');
     } finally {
       setIsLoading(false);
     }
   };
 
   // Function to parse a string and update the plan state
-  const setPlanFromString = async (planString: string, originalGoal: string | undefined, chatHistory: ChatMessage[], interactionMode: InteractionMode): Promise<boolean> => {
+  const setPlanFromString = async (planString: string, originalGoal: string | undefined): Promise<boolean> => {
     setError(null);
     setIsLoading(true);
-    // Store metadata first
-    setCurrentChatHistory(chatHistory);
-    setCurrentInteractionMode(interactionMode);
+    
     try {
       console.log('[PlanContext] Attempting to parse plan string for update...');
       const goalForParsing = plan?.goal || originalGoal || 'Updated Plan';
@@ -142,15 +119,9 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
 
         // --- Auto-save if user is logged in ---
         if (user) {
-           // Construct payload for saving
-            const planToSave: FullPlan = {
-                ...planWithInitialAchievements, // Save the plan *with* initial achievements
-                chatHistory: chatHistory,
-                interactionMode: interactionMode,
-            };
           try {
             console.log('[PlanContext] Auto-saving updated plan for user:', user.id);
-            await savePlan(user.id, planToSave);
+            await savePlan(user.id, planWithInitialAchievements);
             console.log('[PlanContext] Updated plan auto-save successful.');
           } catch (saveError) {
             console.error('[PlanContext] Updated plan auto-save failed:', saveError);
@@ -165,30 +136,22 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
         console.error('[PlanContext] Failed to parse the updated plan string. String:', planString);
         setError('Received an AI response, but it could not be structured into an updated plan.');
         setIsLoading(false);
-        // Optionally clear metadata if parse fails
-        // setCurrentChatHistory([]);
-        // setCurrentInteractionMode('chat');
         return false;
       }
     } catch (parseError) {
         console.error('[PlanContext] Error during plan string parsing:', parseError);
         setError('An error occurred while trying to structure the updated plan.');
         setIsLoading(false);
-        // Clear metadata on error
-        setCurrentChatHistory([]);
-        setCurrentInteractionMode('chat');
         return false;
     }
   };
 
   // Function to directly set the plan state, usually when loading a saved plan
-  const setPlan = (loadedPlan: FullPlan, chatHistory?: ChatMessage[], interactionMode?: InteractionMode) => {
-    console.log('[PlanContext] Setting plan state directly (loading saved plan). Mode:', interactionMode);
+  const setPlan = (loadedPlan: FullPlan) => {
+    console.log('[PlanContext] Setting plan state directly (loading saved plan).');
     // Ensure achievements are checked on load, but don't trigger toasts
     const { updatedPlan: planWithAchievements } = checkAndUnlockAchievements(loadedPlan);
     setPlanState(planWithAchievements);
-    setCurrentChatHistory(chatHistory || loadedPlan.chatHistory || []); // Use provided or stored history
-    setCurrentInteractionMode(interactionMode || loadedPlan.interactionMode || 'chat'); // Use provided or stored mode
     setError(null); // Clear any previous errors when setting a new plan
     setIsLoading(false); // Ensure loading is false
   };
@@ -197,32 +160,21 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
   const saveCurrentPlan = async () => {
     if (!user) {
       console.log('[PlanContext] User not logged in, cannot save plan.');
-      // Optionally set an error
       setError('You must be logged in to save.');
       return;
     }
     if (!plan) {
       console.log('[PlanContext] No active plan to save.');
-      // Optionally set an error
-      // setError('No plan to save.');
       return;
     }
 
-    // Combine core plan with current metadata state for saving
-    const planToSave: FullPlan = {
-        ...plan,
-        chatHistory: currentChatHistory, // Use state variable
-        interactionMode: currentInteractionMode, // Use state variable
-    };
-
-    console.log(`[PlanContext] Attempting to save current plan (${planToSave.goal}) with mode: ${planToSave.interactionMode}`);
+    console.log(`[PlanContext] Attempting to save current plan (${plan.goal})`);
     try {
-      await savePlan(user.id, planToSave);
+      await savePlan(user.id, plan);
       console.log('[PlanContext] Current plan state saved successfully.');
     } catch (saveError) {
       console.error('[PlanContext] Failed to save current plan state:', saveError);
       setError('Failed to save the current plan progress.'); // Set an error for the user
-      // Re-throw or handle as needed
     }
   };
 
@@ -280,14 +232,9 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
 
     // --- 2. Persist Change ---
     if (user && planAfterToggle) { // Ensure planAfterToggle is not null
-      const planToSave: FullPlan = {
-          ...planAfterToggle, // Use the state *after* local toggle & achievement check
-          chatHistory: currentChatHistory,
-          interactionMode: currentInteractionMode,
-      };
       try {
           console.log('[PlanContext] Saving plan after task toggle for user:', user.id);
-          await savePlan(user.id, planToSave);
+          await savePlan(user.id, planAfterToggle);
           console.log('[PlanContext] Saved plan after task toggle.');
           // Save successful, optimistic update is now confirmed
       } catch (saveError) {
@@ -309,14 +256,12 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
     plan,
     isLoading,
     error,
-    currentChatHistory, // Provide metadata state
-    currentInteractionMode, // Provide metadata state
     generateNewPlan,
     setPlanFromString,
     setPlan,
-    saveCurrentPlan, // Updated function
-    toggleTaskCompletion, // Updated function
-    resetPlanState, // Expose reset function
+    saveCurrentPlan,
+    toggleTaskCompletion,
+    resetPlanState,
   };
 
   return (

@@ -1,0 +1,95 @@
+.chatContainer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-m); /* Was 10px */
+  padding: var(--spacing-m); /* Was 10px */
+  overflow-y: auto; /* Allow scrolling if messages overflow */
+  height: 100%; /* Take full height of its parent */
+}
+
+.messageBubble {
+  padding: var(--spacing-xs) var(--spacing-s); /* Was 2px 8px */
+  border-radius: var(--border-radius-message); /* Was 15px */
+  max-width: 80%; /* Reduced max width */
+  word-wrap: break-word; /* Prevent long words from overflowing */
+  line-height: 1.4;
+}
+
+.messageBubble.user {
+  background-color: var(--color-primary); /* Was #4A90E2 */
+  color: var(--color-text-white); /* Was white */
+  border-bottom-right-radius: var(--border-radius-small); /* Was 4px */
+  align-self: flex-end; /* Align user messages to the right */
+  margin-left: auto; /* Push to the right */
+}
+
+.messageBubble.ai {
+  background-color: var(--color-background-light); /* Was #f0f0f0 */
+  color: var(--color-text-main); /* Was #333 */
+  border-bottom-left-radius: var(--border-radius-small); /* Was 4px */
+  align-self: flex-start; /* Align AI messages to the left */
+  margin-right: auto; /* Push to the left */
+}
+
+/* Default style for unknown roles */
+.messageBubble.defaultRole {
+  background-color: var(--color-background-light); /* Was #f0f0f0 */
+  color: var(--color-text-main); /* Was #333 */
+  align-self: flex-start; /* Default align left */
+  margin-right: auto; /* Push to the left */
+}
+
+/* Styles for Markdown generated lists */
+.markdownList {
+  padding-left: var(--spacing-xl); /* Was 20px */
+  margin-top: var(--spacing-xs); /* Was 5px */
+  margin-bottom: var(--spacing-xs); /* Was 5px */
+  list-style-type: disc; /* Use standard disc bullets */
+}
+
+.markdownListItem {
+  margin-bottom: var(--spacing-xs); /* Was 3px */
+}
+
+/* Optional: Add some spacing for markdown lists */
+.messageBubble ul,
+.messageBubble ol {
+  padding-left: var(--spacing-xl); /* Was 20px */
+  margin-top: var(--spacing-xs); /* Was 5px */
+  margin-bottom: var(--spacing-xs); /* Was 5px */
+}
+
+/* Styles for Markdown Code Blocks */
+.markdownPre {
+  background-color: var(--color-code-background); /* Was #2d3748 */
+  color: var(--color-code-text); /* Was #e2e8f0 */
+  padding: var(--spacing-m) var(--spacing-xl); /* Was 10px 15px */
+  border-radius: var(--border-radius-medium); /* Was 6px */
+  margin-top: var(--spacing-s); /* Was 8px */
+  margin-bottom: var(--spacing-s); /* Was 8px */
+  overflow-x: auto; /* Allow horizontal scrolling for long lines */
+  font-size: var(--font-size-small); /* Was 0.875em */
+}
+
+.markdownPre code {
+  font-family: 'Courier New', Courier, monospace; /* Monospace font */
+  background-color: transparent; /* Inherit background from pre */
+  padding: 0; /* Remove padding, pre handles it */
+  color: inherit; /* Inherit color from pre */
+  white-space: pre; /* Preserve whitespace and line breaks */
+}
+
+/* Styles for Inline Code */
+:not(pre) > code {
+  background-color: var(--color-background-light); /* Was #e2e8f0 */
+  color: var(--color-text-main); /* Was #2d3748 */
+  padding: var(--spacing-xs) var(--spacing-xs); /* Was 2px 5px */
+  border-radius: var(--border-radius-small); /* Was 4px */
+  font-family: 'Courier New', Courier, monospace;
+  font-size: var(--font-size-tiny); /* Was 0.9em */
+}
+
+/* General adjustments for spacing within bubbles if needed */
+.messageBubble p {
+  margin-bottom: var(--spacing-xs); /* Was 5px */
+}

@@ -4,14 +4,12 @@ import styles from './SavedPlansModal.module.css';
 import { useAuth } from '../../contexts/SupabaseAuthContext';
 import { FullPlan } from '../../types/planTypes';
 import { ChatMessage } from '../../types/chatTypes';
-import { InteractionMode } from '../../types/generalTypes';
 import { getUserPlans, deletePlan, PlanWithId, deletePlansByGoal } from '../../services/supabaseService';
 
 interface SavedPlansModalProps {
   isOpen: boolean;
   onClose: () => void;
-  // Update prop signature to pass more data
-  onLoadPlan: (loadedData: { plan: FullPlan; chatHistory?: ChatMessage[]; interactionMode?: InteractionMode }) => void;
+  onLoadPlan: (loadedData: { plan: FullPlan; chatHistory?: ChatMessage[] }) => void;
 }
 
 // Type definition moved to supabaseService.ts
@@ -84,11 +82,10 @@ const SavedPlansModal: React.FC<SavedPlansModalProps> = ({ isOpen, onClose, onLo
   };
 
   const handleLoadPlan = (version: PlanWithId) => {
-    // Pass the core plan data along with history and mode
+    // Pass the core plan data along with history
     onLoadPlan({
       plan: version as FullPlan, 
-      chatHistory: version.chatHistory, // Pass history if available
-      interactionMode: version.interactionMode // Pass mode if available
+      chatHistory: version.chatHistory // Pass history if available
     });
     onClose(); // Close modal after loading
   };
