@@ -6,12 +6,33 @@ import { FaLightbulb, FaTrophy } from 'react-icons/fa';
 import BarLoader from "react-spinners/BarLoader";
 import AchievementsModal from '../modals/AchievementsModal';
 import { teamMembers } from '../../config/team';
+import { parsePlanString } from '../../utils/planParser';
 
 const MainContent: React.FC = () => {
-  const { plan, isLoading, error, toggleTaskCompletion } = usePlan();
+  const { plan, streamingPlanText, isLoading, error, toggleTaskCompletion } = usePlan();
   const [selectedMonthIndex, setSelectedMonthIndex] = useState<number>(0);
   const [isAchievementsModalOpen, setIsAchievementsModalOpen] = useState<boolean>(false);
   const [selectedWeekIndex, setSelectedWeekIndex] = useState<number>(0);
+
+  // Parse streaming plan text in real-time
+  const streamingPlan = useMemo(() => {
+    if (!streamingPlanText) return null;
+    
+    // Try to extract goal from streaming text
+    const goalMatch = streamingPlanText.match(/# Goal:\s*(.+)/);
+    const goal = goalMatch ? goalMatch[1].trim() : 'Your Goal';
+    
+    // Try to parse what we have so far
+    try {
+      return parsePlanString(streamingPlanText, goal);
+    } catch {
+      // If parsing fails, return null and let the component show loading state
+      return null;
+    }
+  }, [streamingPlanText]);
+
+  // Use either the final plan or the streaming plan
+  const currentPlan = plan || streamingPlan;
 
   const { totalTasks, completedTasks, progressPercentage } = useMemo(() => {
     if (!plan?.monthlyMilestones) {
@@ -47,7 +68,8 @@ const MainContent: React.FC = () => {
     }
   }, [plan, selectedMonthIndex, selectedWeekIndex, toggleTaskCompletion]);
 
-  if (isLoading && !plan) {
+  // Show streaming text if we have it but no parsed plan yet
+  if (streamingPlanText && !currentPlan) {
     return (
       <div className={`${styles.mainContent} ${styles.loadingContainer}`}>
         <BarLoader
@@ -58,7 +80,26 @@ const MainContent: React.FC = () => {
           aria-label="Loading Spinner"
           data-testid="loader"
         />
-        <p className={styles.loadingText}>Loading your plan...</p>
+        <p className={styles.loadingText}>Generating your plan...</p>
+        <div className={styles.streamingContainer}>
+          <pre className={styles.streamingText}>{streamingPlanText}</pre>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading && !currentPlan) {
+    return (
+      <div className={`${styles.mainContent} ${styles.loadingContainer}`}>
+        <BarLoader
+          color={"#4A90E2"} 
+          loading={true}
+          width={150} 
+          height={4} 
+          aria-label="Loading Spinner"
+          data-testid="loader"
+        />
+        <p className={styles.loadingText}>Generating your plan...</p>
       </div>
     );
   }
@@ -67,7 +108,7 @@ const MainContent: React.FC = () => {
     return <div className={`${styles.mainContent} ${styles.emptyState}`}>Error loading plan: {error}</div>;
   }
 
-  if (!plan) {
+  if (!currentPlan) {
     return (
       <div className={`${styles.mainContent} ${styles.emptyState}`}>
         <div className={styles.emptyStateContent}>
@@ -103,7 +144,7 @@ const MainContent: React.FC = () => {
     );
   }
 
-  const monthsData: MonthlyMilestone[] = plan.monthlyMilestones || [];
+  const monthsData: MonthlyMilestone[] = currentPlan.monthlyMilestones || [];
 
   const renderPlaceholders = (
     type: 'week' | 'day',
@@ -125,7 +166,7 @@ const MainContent: React.FC = () => {
   return (
     <main className={styles.mainContent}>
       <div className={styles.goalHeader}>
-        <h1>Goal: {plan.goal}</h1>
+        <h1>Goal: {currentPlan.goal}</h1>
         {plan && (
            <button 
              onClick={() => setIsAchievementsModalOpen(true)} 

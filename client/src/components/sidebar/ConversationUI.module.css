@@ -93,3 +93,17 @@
 .messageBubble p {
   margin-bottom: var(--spacing-xs); /* Was 5px */
 }
+
+/* Streaming indicator (blinking cursor) */
+.streamingIndicator {
+  display: inline-block;
+  animation: blink 1s linear infinite;
+  color: var(--color-primary);
+  font-weight: bold;
+  margin-left: 2px;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}

@@ -67,19 +67,55 @@ const model = genAI.getGenerativeModel({
 });
 
 // --- Middleware ---
-app.use(cors({ origin: 'http://localhost:3000' })); // Allow requests from React app
+app.use(cors({ 
+  origin: ['http://localhost:3000', 'http://localhost:3001'], // Allow requests from React app on both ports
+  credentials: true
+}));
 app.use(express.json()); // Parse JSON bodies
+
+// --- Helper Functions ---
+
+// Real streaming function using Gemini's streaming capabilities
+async function streamAIResponse(res, prompt, generationConfig) {
+  // Set up streaming headers
+  res.writeHead(200, {
+    'Content-Type': 'text/plain; charset=utf-8',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+  });
+
+  try {
+    const result = await model.generateContentStream(prompt, { generationConfig });
+    
+    for await (const chunk of result.stream) {
+      const chunkText = chunk.text();
+      if (chunkText) {
+        res.write(chunkText);
+      }
+    }
+    
+    res.end();
+    console.log("[Server] Successfully streamed AI response.");
+  } catch (error) {
+    console.error("[Server] Error during streaming:", error);
+    if (!res.headersSent) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Streaming failed' }));
+    } else {
+      res.end();
+    }
+  }
+}
 
 // --- API Routes ---
 
-// Endpoint for generating the plan
+// Endpoint for generating the plan with simulated streaming
 app.post('/api/generate-plan', async (req, res) => {
   const { goal } = req.body;
 
   if (!goal) {
     return res.status(400).json({ error: 'Goal is required in the request body.' });
   }
-
 
   try {
     console.log(`[Server] Received /api/generate-plan request for goal: "${goal.substring(0, 50)}..."`);
@@ -118,37 +154,32 @@ Structure the plan rigorously using the following Markdown format:
 
 Ensure every day within every week has a task assigned. Use the exact headings (# Goal:, ## Month <number>:, ### Week <number>:, - Day <number>:) as shown.`;
 
-    // Use plan generation specific configuration
-    const result = await model.generateContent(fullPrompt, {
-      generationConfig: {
-        temperature: GEMINI_CONFIG.planGeneration.temperature,
-        topK: GEMINI_CONFIG.planGeneration.topK,
-        topP: GEMINI_CONFIG.planGeneration.topP,
-        maxOutputTokens: GEMINI_CONFIG.maxOutputTokens,
-        frequencyPenalty: GEMINI_CONFIG.frequencyPenalty,
-        presencePenalty: GEMINI_CONFIG.presencePenalty,
-        thinkingConfig: {
-          includeThoughts: GEMINI_CONFIG.thinkingConfig.includeThoughts,
-          thinkingBudget: GEMINI_CONFIG.planGeneration.thinkingBudget
-        }
+    // Use plan generation specific configuration with real streaming
+    const planGenerationConfig = {
+      temperature: GEMINI_CONFIG.planGeneration.temperature,
+      topK: GEMINI_CONFIG.planGeneration.topK,
+      topP: GEMINI_CONFIG.planGeneration.topP,
+      maxOutputTokens: GEMINI_CONFIG.maxOutputTokens,
+      frequencyPenalty: GEMINI_CONFIG.frequencyPenalty,
+      presencePenalty: GEMINI_CONFIG.presencePenalty,
+      thinkingConfig: {
+        includeThoughts: GEMINI_CONFIG.thinkingConfig.includeThoughts,
+        thinkingBudget: GEMINI_CONFIG.planGeneration.thinkingBudget
       }
-    });
-    const response = await result.response;
-    const content = response.text();
-    
-    if (!content) {
-      throw new Error("No content received from AI.");
-    }
-    console.log("[Server] Successfully received plan from Google AI Studio.");
-    res.json({ plan: content }); // Send the plan back to the client
+    };
+
+    // Stream the response using real streaming
+    await streamAIResponse(res, fullPrompt, planGenerationConfig);
 
   } catch (error) {
     console.error("[Server] Error calling Google AI Studio API (generatePlan):", error);
-    res.status(500).json({ error: 'Failed to generate plan from AI service.' });
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Failed to generate plan from AI service.' });
+    }
   }
 });
 
-// Endpoint for chat interactions
+// Endpoint for chat interactions with simulated streaming
 app.post('/api/chat', async (req, res) => {
   const { message, history, plan } = req.body;
 
@@ -278,31 +309,42 @@ app.post('/api/chat', async (req, res) => {
 
     console.log("[Server] Successfully received chat response from Google AI Studio.");
     
-        // --- Attempt to extract Markdown plan if refining ---
-        if (plan && finalContent.includes('# Goal:')) { // Check if plan context existed AND '# Goal:' is in the response
-            const planStartIndex = finalContent.indexOf('# Goal:');
-            if (planStartIndex !== -1) {
-                const extractedPlan = finalContent.substring(planStartIndex);
-                // Basic check: Does it look like a plan? (Has month/week markers)
-                if (extractedPlan.includes('## Month') && extractedPlan.includes('### Week')) {
-                     console.log('[Server] Extracted potential Markdown plan from AI response.');
-                     finalContent = extractedPlan; // Use only the extracted part
-                } else {
-                     console.log('[Server] Found "# Goal:" but response lacks other plan markers. Sending raw response.');
-                }
+    // --- Attempt to extract Markdown plan if refining ---
+    if (plan && finalContent.includes('# Goal:')) { // Check if plan context existed AND '# Goal:' is in the response
+        const planStartIndex = finalContent.indexOf('# Goal:');
+        if (planStartIndex !== -1) {
+            const extractedPlan = finalContent.substring(planStartIndex);
+            // Basic check: Does it look like a plan? (Has month/week markers)
+            if (extractedPlan.includes('## Month') && extractedPlan.includes('### Week')) {
+                 console.log('[Server] Extracted potential Markdown plan from AI response.');
+                 finalContent = extractedPlan; // Use only the extracted part
             } else {
-                 console.log('[Server] Plan context existed but "# Goal:" not found in response. Sending raw response.');
+                 console.log('[Server] Found "# Goal:" but response lacks other plan markers. Sending raw response.');
             }
-        } else if (plan) {
+        } else {
              console.log('[Server] Plan context existed but "# Goal:" not found in response. Sending raw response.');
         }
-        // --- End extraction logic ---
+    } else if (plan) {
+         console.log('[Server] Plan context existed but "# Goal:" not found in response. Sending raw response.');
+    }
+    // --- End extraction logic ---
+
+    // Stream the response using a simple text stream
+    res.writeHead(200, {
+      'Content-Type': 'text/plain; charset=utf-8',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+    });
     
-        res.json({ response: finalContent }); // Send the (potentially modified) response back
+    res.write(finalContent);
+    res.end();
+    console.log("[Server] Successfully sent chat response.");
 
   } catch (error) {
     console.error("[Server] Error calling Google AI Studio API (chat):", error);
-    res.status(500).json({ error: 'Failed to get chat response from AI service.' });
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Failed to get chat response from AI service.' });
+    }
   }
 });
 

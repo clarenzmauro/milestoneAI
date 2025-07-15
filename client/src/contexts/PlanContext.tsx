@@ -12,9 +12,10 @@ import toast from 'react-hot-toast';
 // 1. Define the shape of the context data
 export interface IPlanContext {
   plan: FullPlan | null;
+  streamingPlanText: string | null;
   isLoading: boolean;
   error: string | null;
-  generateNewPlan: (goal: string) => Promise<void>;
+  generateNewPlan: (goal: string, onChunk?: (chunk: string) => void) => Promise<void>;
   setPlanFromString: (planString: string, originalGoal: string | undefined) => Promise<boolean>;
   setPlan: (loadedPlan: FullPlan) => void;
   saveCurrentPlan: () => Promise<void>;
@@ -32,6 +33,7 @@ interface PlanProviderProps {
 
 export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
   const [plan, setPlanState] = useState<FullPlan | null>(null);
+  const [streamingPlanText, setStreamingPlanText] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
@@ -40,12 +42,13 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
   const resetPlanState = () => {
     console.log('[PlanContext] Resetting plan state.');
     setPlanState(null);
+    setStreamingPlanText(null);
     setIsLoading(false);
     setError(null);
   };
 
   // Function to be called by components to generate/update the plan
-  const generateNewPlan = async (goal: string) => {
+  const generateNewPlan = async (goal: string, onChunk?: (chunk: string) => void) => {
     const trimmedGoal = goal.trim();
     if (!trimmedGoal) {
       setError('Goal cannot be empty.');
@@ -54,9 +57,24 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
     setIsLoading(true);
     setError(null);
     setPlanState(null);
+    setStreamingPlanText('');
 
     try {
-      const rawPlanString = await apiGeneratePlan(trimmedGoal);
+      let accumulatedText = '';
+      
+      const rawPlanString = await apiGeneratePlan(trimmedGoal, (chunk: string) => {
+        accumulatedText += chunk;
+        setStreamingPlanText(accumulatedText);
+        
+        // Also call the provided onChunk callback if it exists
+        if (onChunk) {
+          onChunk(chunk);
+        }
+      });
+      
+      // Clear streaming text once plan is fully generated
+      setStreamingPlanText(null);
+      
       const parsedPlan = parsePlanString(rawPlanString, trimmedGoal);
 
       if (parsedPlan) {
@@ -254,6 +272,7 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
   // Value object provided by the context
   const contextValue: IPlanContext = {
     plan,
+    streamingPlanText,
     isLoading,
     error,
     generateNewPlan,

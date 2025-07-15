@@ -39,56 +39,137 @@ async function _fetchAPI<T>(endpoint: string, body: object): Promise<T> {
   return data;
 }
 
-// Function to generate the initial 90-day plan via backend proxy
-export const generatePlan = async (goal: string): Promise<string> => {
+// Function to generate the initial 90-day plan via backend proxy with streaming
+export const generatePlan = async (
+  goal: string, 
+  onChunk?: (chunk: string) => void
+): Promise<string> => {
   console.log(`[Client] Sending generate plan request for goal: "${goal}" to backend proxy...`);
-  try {
-    // Use the fetch helper
-    const data = await _fetchAPI<{ plan?: string }>('generate-plan', { goal });
+  
+  const url = `${BACKEND_URL}/generate-plan`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ goal }),
+  });
 
-    if (!data.plan) {
-      throw new Error("No plan content received from backend.");
+  if (!response.ok) {
+    // For streaming endpoints, try to get error from response body
+    const errorText = await response.text();
+    try {
+      const errorData = JSON.parse(errorText);
+      throw new Error(errorData.error || `Backend Error: ${response.status} ${response.statusText}`);
+    } catch {
+      throw new Error(`Backend Error: ${response.status} ${response.statusText}`);
     }
+  }
 
-    console.log("[Client] Received plan from backend proxy.");
-    return data.plan;
+  const reader = response.body?.getReader();
+  const decoder = new TextDecoder();
+  
+  if (!reader) {
+    throw new Error("No response stream available");
+  }
+
+  let fullContent = '';
+  
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      
+      if (done) break;
+      
+      const chunk = decoder.decode(value, { stream: true });
+      fullContent += chunk;
+      
+      // Call the chunk callback if provided
+      if (onChunk) {
+        onChunk(chunk);
+      }
+    }
+    
+    console.log("[Client] Received streamed plan from backend proxy.");
+    return fullContent;
+    
   } catch (error) {
-    console.error("[Client] Error calling backend proxy (generatePlan):", error);
+    console.error("[Client] Error during plan streaming:", error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    // Re-throw error with context
     throw new Error(`Failed to generate plan via backend: ${errorMessage}`);
+  } finally {
+    reader.releaseLock();
   }
 };
 
 // NOTE: Ensure this history type matches exactly what the backend expects.
-// If the backend uses OpenAI format, this might need adjustment or conversion.
 type GeminiHistoryItem = { role: 'user' | 'model'; parts: string };
 
-// Function for chat interactions via backend proxy
+// Function for chat interactions via backend proxy with streaming
 export const chatWithAI = async (
   message: string,
-  history: GeminiHistoryItem[], // Use specific type alias
-  plan: FullPlan | null
+  history: GeminiHistoryItem[], 
+  plan: FullPlan | null,
+  onChunk?: (chunk: string) => void
 ): Promise<string> => {
   console.log(`[Client] Sending chat message: "${message}" with plan context to backend proxy...`);
-  try {
-    // Use the fetch helper
-    const data = await _fetchAPI<{ response?: string }>('chat', {
+  
+  const url = `${BACKEND_URL}/chat`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
       message,
       history,
       plan
-    });
+    }),
+  });
 
-    if (!data.response) {
-      throw new Error("No chat response received from backend.");
+  if (!response.ok) {
+    // For streaming endpoints, try to get error from response body
+    const errorText = await response.text();
+    try {
+      const errorData = JSON.parse(errorText);
+      throw new Error(errorData.error || `Backend Error: ${response.status} ${response.statusText}`);
+    } catch {
+      throw new Error(`Backend Error: ${response.status} ${response.statusText}`);
     }
+  }
 
-    console.log("[Client] Received chat response from backend proxy.");
-    return data.response;
+  const reader = response.body?.getReader();
+  const decoder = new TextDecoder();
+  
+  if (!reader) {
+    throw new Error("No response stream available");
+  }
+
+  let fullContent = '';
+  
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      
+      if (done) break;
+      
+      const chunk = decoder.decode(value, { stream: true });
+      fullContent += chunk;
+      
+      // Call the chunk callback if provided
+      if (onChunk) {
+        onChunk(chunk);
+      }
+    }
+    
+    console.log("[Client] Received streamed chat response from backend proxy.");
+    return fullContent;
+    
   } catch (error) {
-    console.error("[Client] Error calling backend proxy (chatWithAI):", error);
+    console.error("[Client] Error during chat streaming:", error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    // Re-throw error with context
     throw new Error(`Failed to get chat response via backend: ${errorMessage}`);
+  } finally {
+    reader.releaseLock();
   }
 };

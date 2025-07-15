@@ -19,6 +19,7 @@ const Sidebar: React.FC = () => {
   const [inputValue, setInputValue] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([initialMessage]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isStreaming, setIsStreaming] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
   const [isPlansModalOpen, setIsPlansModalOpen] = useState(false);
@@ -62,16 +63,42 @@ const Sidebar: React.FC = () => {
 
   const handlePlanGeneration = useCallback(async (message: string, updatedMessages: ChatMessage[]) => {
     console.log('[Sidebar] Generating new plan...');
-    await generateNewPlan(message);
-
-    const aiConfirmationMessage: ChatMessage = {
+    
+    // Add a simple message indicating plan generation has started
+    const loadingMessage: ChatMessage = {
       id: Date.now() + 1,
       role: 'ai',
-      text: `Perfect! I'm generating your 90-day plan for: "${message}". It will appear in the main area shortly. Once it's ready, you can continue chatting with me to refine and discuss your plan.`,
+      text: "I'm generating your 90-day plan now. You can watch it build up in real-time in the main content area!",
     };
 
-    if (!planError) {
-      setMessages(prevMessages => [...prevMessages, aiConfirmationMessage]);
+    setMessages(prevMessages => [...prevMessages, loadingMessage]);
+    setIsStreaming(true);
+
+    try {
+      // Generate the plan without showing streaming text in chat
+      await generateNewPlan(message);
+      
+      setIsStreaming(false);
+
+      // Add a final confirmation message after plan generation is complete
+      const confirmationMessage: ChatMessage = {
+        id: Date.now() + 2,
+        role: 'ai',
+        text: "Perfect! Your 90-day plan has been generated and appears in the main area. Feel free to ask me questions about it or request any changes!",
+      };
+
+      if (!planError) {
+        setMessages(prevMessages => [...prevMessages, confirmationMessage]);
+      }
+    } catch (error) {
+      setIsStreaming(false);
+      // If there's an error, add an error message
+      const errorMessage: ChatMessage = {
+        id: Date.now() + 3,
+        role: 'ai',
+        text: "Sorry, I encountered an error while generating your plan. Please try again.",
+      };
+      setMessages(prevMessages => [...prevMessages, errorMessage]);
     }
   }, [generateNewPlan, planError]);
 
@@ -82,50 +109,70 @@ const Sidebar: React.FC = () => {
     })).slice(0, -1)
   , []);
 
-  const handlePlanUpdate = useCallback(async (aiResponseText: string, updatedMessages: ChatMessage[]) => {
-    console.log('[Sidebar] Attempting to update plan with AI response...');
-    const success = await setPlanFromString(aiResponseText, plan?.goal);
-
-    const messageToAdd: ChatMessage = {
-      id: Date.now() + 1,
-      role: 'ai',
-      text: success ? "Great! I've updated your plan based on your request. Check the main content area to see the changes." : aiResponseText,
-    };
-
-    setMessages(prevMessages => [...prevMessages, messageToAdd]);
-
-    if (!success) {
-      console.log('[Sidebar] Plan update failed (parsing error?). Displaying raw response.');
-    }
-  }, [setPlanFromString, plan]);
-
-  const handleRegularChatResponse = useCallback((aiResponseText: string, updatedMessages: ChatMessage[]) => {
-    const messageToAdd: ChatMessage = {
-      id: Date.now() + 1,
-      role: 'ai',
-      text: aiResponseText,
-    };
-
-    const updatedMessagesIncludingAI = [...updatedMessages, messageToAdd];
-    setMessages(updatedMessagesIncludingAI);
-
-    if (plan) {
-      saveCurrentPlan();
-    }
-  }, [plan, saveCurrentPlan]);
-
   const handleChatOrRefinement = useCallback(async (message: string, updatedMessages: ChatMessage[]) => {
     console.log('[Sidebar] Calling chatWithAI service...');
-    const history = prepareChatHistory(updatedMessages);
-    const aiResponseText = await chatWithAI(message, history, plan);
+    
+    // Create a streaming AI message
+    const streamingMessageId = Date.now() + 1;
+    const initialAiMessage: ChatMessage = {
+      id: streamingMessageId,
+      role: 'ai',
+      text: '',
+    };
 
-    // Check if this looks like a plan update (contains "# Goal:")
-    if (plan && aiResponseText.includes('# Goal:')) {
-      await handlePlanUpdate(aiResponseText, updatedMessages);
-    } else {
-      handleRegularChatResponse(aiResponseText, updatedMessages);
+    // Add the initial empty AI message and start streaming
+    setMessages(prevMessages => [...prevMessages, initialAiMessage]);
+    setIsStreaming(true);
+
+    try {
+      const history = prepareChatHistory(updatedMessages);
+      const aiResponseText = await chatWithAI(message, history, plan, (chunk: string) => {
+        // Update the streaming message with each chunk
+        setMessages(prevMessages => 
+          prevMessages.map(msg => 
+            msg.id === streamingMessageId 
+              ? { ...msg, text: msg.text + chunk }
+              : msg
+          )
+        );
+      });
+      
+      setIsStreaming(false);
+
+      // Check if this looks like a plan update (contains "# Goal:")
+      if (plan && aiResponseText.includes('# Goal:')) {
+        // For plan updates, we need to process the plan
+        const success = await setPlanFromString(aiResponseText, plan?.goal);
+        
+        if (success) {
+          // Replace the streaming message with a confirmation
+          setMessages(prevMessages => 
+            prevMessages.map(msg => 
+              msg.id === streamingMessageId 
+                ? { ...msg, text: "Great! I've updated your plan based on your request. Check the main content area to see the changes." }
+                : msg
+            )
+          );
+        }
+        // If not successful, the streaming message already contains the raw response
+      }
+      // For regular chat, the streaming message already contains the response
+
+      if (plan) {
+        saveCurrentPlan();
+      }
+    } catch (error) {
+      setIsStreaming(false);
+      // If there's an error, replace the streaming message with an error message
+      setMessages(prevMessages => 
+        prevMessages.map(msg => 
+          msg.id === streamingMessageId 
+            ? { ...msg, text: "Sorry, I encountered an error. Please try again." }
+            : msg
+        )
+      );
     }
-  }, [prepareChatHistory, plan, handlePlanUpdate, handleRegularChatResponse]);
+  }, [prepareChatHistory, plan, setPlanFromString, saveCurrentPlan]);
 
   const handleError = useCallback((err: unknown) => {
     console.error("[Sidebar] Error during AI interaction:", err);
@@ -289,7 +336,7 @@ const Sidebar: React.FC = () => {
         {!isCollapsed && (
           <>
             <div className={styles.mainContent} ref={chatContainerRef}>
-              <ConversationUI messages={messages} />
+              <ConversationUI messages={messages} isStreaming={isStreaming} />
               {(planError || error) && !isLoading && !isPlanLoading && (
                 <div className={styles.errorMessage}>
                   {planError && `Plan Error: ${planError}`}
