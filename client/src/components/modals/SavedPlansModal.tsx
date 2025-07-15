@@ -1,12 +1,11 @@
 // src/components/modals/SavedPlansModal.tsx
 import React, { useState, useEffect, useCallback } from 'react';
 import styles from './SavedPlansModal.module.css';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../contexts/SupabaseAuthContext';
 import { FullPlan } from '../../types/planTypes';
 import { ChatMessage } from '../../types/chatTypes';
 import { InteractionMode } from '../../types/generalTypes';
-import { getUserPlans, deletePlan, PlanWithId, deletePlansByGoal } from '../../services/firestoreService';
-import { Timestamp } from 'firebase/firestore'; // For displaying dates
+import { getUserPlans, deletePlan, PlanWithId, deletePlansByGoal } from '../../services/supabaseService';
 
 interface SavedPlansModalProps {
   isOpen: boolean;
@@ -15,13 +14,13 @@ interface SavedPlansModalProps {
   onLoadPlan: (loadedData: { plan: FullPlan; chatHistory?: ChatMessage[]; interactionMode?: InteractionMode }) => void;
 }
 
-// Type definition moved to firestoreService.ts
+// Type definition moved to supabaseService.ts
 
-// Helper to format Timestamp
-const formatTimestamp = (timestamp: Timestamp | null | undefined): string => {
+// Helper to format ISO string timestamp
+const formatTimestamp = (timestamp: string | null | undefined): string => {
   if (!timestamp) return 'Unknown date';
   try {
-    return timestamp.toDate().toLocaleString(undefined, { 
+    return new Date(timestamp).toLocaleString(undefined, { 
       year: 'numeric', month: 'short', day: 'numeric', 
       hour: 'numeric', minute: '2-digit' 
     });
@@ -45,7 +44,7 @@ const SavedPlansModal: React.FC<SavedPlansModalProps> = ({ isOpen, onClose, onLo
     setIsLoading(true);
     setError(null);
     try {
-      const fetchedPlans = await getUserPlans(user.uid);
+      const fetchedPlans = await getUserPlans(user.id);
       setRawPlans(fetchedPlans);
     } catch (err) {
       setError('Failed to load saved plans.');
@@ -98,7 +97,7 @@ const SavedPlansModal: React.FC<SavedPlansModalProps> = ({ isOpen, onClose, onLo
     if (!user) return;
     setDeletingId(planId); // Indicate deletion in progress
     try {
-      await deletePlan(user.uid, planId);
+      await deletePlan(user.id, planId);
       // Refetch plans to update the list after deletion
       fetchPlans(); 
     } catch (err) {
@@ -120,7 +119,7 @@ const SavedPlansModal: React.FC<SavedPlansModalProps> = ({ isOpen, onClose, onLo
       setDeletingGoal(goalToDelete); // Set deleting state for UI feedback
       setError(null);
       try {
-        await deletePlansByGoal(user.uid, goalToDelete);
+        await deletePlansByGoal(user.id, goalToDelete);
         // Refresh the list after successful deletion
         await fetchPlans(); 
       } catch (err) { 
@@ -187,12 +186,12 @@ const SavedPlansModal: React.FC<SavedPlansModalProps> = ({ isOpen, onClose, onLo
                   {isExpanded && (
                     <ul className={styles.versionList}>
                       {versions
-                        .sort((a, b) => (b.createdAt?.toMillis() ?? 0) - (a.createdAt?.toMillis() ?? 0)) // Sort newest first
+                        .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()) // Sort newest first
                         .map((version) => (
                         <li key={version.id} className={styles.planItem}>
                           <div className={styles.planDetails}>
                             {/* Display timestamp instead of goal within the version item */}
-                            <span>Saved: {formatTimestamp(version.createdAt)}</span>
+                            <span>Saved: {formatTimestamp(version.created_at)}</span>
                             {/* Optionally show first few words of goal if needed, but title is above */}
                             {/* <p>{version.goal.substring(0, 30)}...</p> */}
                           </div>

@@ -3,7 +3,7 @@ import styles from './Sidebar.module.css';
 import ChatModeUI from '../sidebar/ChatModeUI';
 import { chatWithAI } from '../../services/aiService';
 import { usePlan } from '../../contexts/PlanContext';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../contexts/SupabaseAuthContext';
 import SavedPlansModal from '../modals/SavedPlansModal';
 import { FullPlan } from '../../types/planTypes';
 import { ChatMessage } from '../../types/chatTypes';

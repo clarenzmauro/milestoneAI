@@ -1,0 +1,20 @@
+{
+  "name": "milestone-ai",
+  "version": "1.0.0",
+  "description": "MilestoneAI - A 90-day goal planning application",
+  "scripts": {
+    "install:all": "cd client && bun install && cd ../server && bun install",
+    "start:server": "cd server && bun start",
+    "start:client": "cd client && bun start",
+    "dev:server": "cd server && bun dev",
+    "build:client": "cd client && bun run build",
+    "start": "concurrently \"bun run start:server\" \"bun run start:client\"",
+    "dev": "concurrently \"bun run dev:server\" \"bun run start:client\""
+  },
+  "keywords": ["ai", "planning", "goals", "gemini", "react"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}

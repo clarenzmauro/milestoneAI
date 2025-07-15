@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import styles from './PlanModeUI.module.css';
 import { usePlan } from '../../contexts/PlanContext';
-import { useAuth } from '../../contexts/AuthContext';
-import { savePlan } from '../../services/firestoreService';
+import { useAuth } from '../../contexts/SupabaseAuthContext';
+import { savePlan } from '../../services/supabaseService';
 
 const PlanModeUI: React.FC = () => {
   const { plan, isLoading: isPlanLoading, error: planError } = usePlan();
@@ -18,7 +18,7 @@ const PlanModeUI: React.FC = () => {
     setSaveMessage(null);
     setSaveError(false);
     try {
-      const planId = await savePlan(user.uid, plan);
+      const planId = await savePlan(user.id, plan);
       setSaveMessage(`Plan saved successfully (ID: ${planId.substring(0, 6)}...)`);
       setTimeout(() => setSaveMessage(null), 3000);
     } catch (err) {

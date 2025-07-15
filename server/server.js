@@ -1,26 +1,69 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const OpenAI = require('openai');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const app = express();
 const PORT = process.env.PORT || 3001; // Use port 3001 for the backend server
 
 // --- Configuration ---
-const API_KEY = process.env.REQUESTY_API_KEY;
-const BASE_URL = "https://router.requesty.ai/v1";
-const MODEL_NAME = "google/gemini-2.0-flash-exp";
+const API_KEY = process.env.GEMINI_API_KEY;
+const MODEL_NAME = "gemini-2.5-flash";
+
+// Gemini 2.5 Flash Configuration Parameters
+const GEMINI_CONFIG = {
+  // Core generation parameters
+  temperature: 0.7,        // Controls randomness (0.0-2.0). Lower = more focused, Higher = more creative
+  topK: 40,               // Limits token selection to top K most probable tokens (1-1000)
+  topP: 0.95,             // Nucleus sampling - selects from tokens with cumulative probability up to this value (0.0-1.0)
+  maxOutputTokens: 8192,  // Maximum tokens in response
+  
+  // Thinking configuration (Gemini 2.5 Flash feature)
+  thinkingConfig: {
+    includeThoughts: false, // Set to true to see the model's internal reasoning process
+    thinkingBudget: 2048   // Token budget for thinking process (0=disabled, -1=automatic, or specific number)
+  },
+  
+  // Additional parameters for fine-tuning
+  frequencyPenalty: 0.0,  // Penalize frequent tokens (0.0-2.0)
+  presencePenalty: 0.0,   // Penalize tokens that appear in the text (0.0-2.0)
+  
+  // For plan generation - more focused
+  planGeneration: {
+    temperature: 0.5,     // More deterministic for structured plans
+    topK: 20,            // More focused token selection
+    topP: 0.9,           // Slightly more conservative
+    thinkingBudget: 24576 // Maximum thinking budget for comprehensive planning (default max)
+  },
+  
+  // For chat - more conversational
+  chatGeneration: {
+    temperature: 0.8,     // More creative for conversations
+    topK: 50,            // Broader token selection
+    topP: 0.95,          // Standard nucleus sampling
+    thinkingBudget: 1024 // Moderate thinking for quick responses
+  }
+};
 
 if (!API_KEY) {
-  console.error("REQUESTY_API_KEY is not defined in the server's .env file.");
+  console.error("GEMINI_API_KEY is not defined in the server's .env file.");
   process.exit(1); // Exit if the key is missing
 }
 
-// Initialize OpenAI client (server-side)
-const client = new OpenAI({
-  apiKey: API_KEY,
-  baseURL: BASE_URL,
-  // No dangerouslyAllowBrowser here!
+// Initialize Google Generative AI client with generation config
+const genAI = new GoogleGenerativeAI(API_KEY);
+const model = genAI.getGenerativeModel({ 
+  model: MODEL_NAME,
+  generationConfig: {
+    temperature: 0.7, // Controls randomness (0.0-1.0+). Lower = more focused, Higher = more creative
+    topK: 40, // Limits token selection to top K most probable tokens
+    topP: 0.95, // Nucleus sampling - selects from tokens with cumulative probability up to this value
+    maxOutputTokens: 8192, // Maximum tokens in response
+    thinkingConfig: {
+      includeThoughts: false, // Set to true if you want to see the model's internal reasoning
+      thinkingBudget: 2048 // Token budget for thinking process (0=disabled, -1=automatic)
+    }
+  }
 });
 
 // --- Middleware ---
@@ -37,63 +80,70 @@ app.post('/api/generate-plan', async (req, res) => {
     return res.status(400).json({ error: 'Goal is required in the request body.' });
   }
 
-  const prompt = `
-    You are an expert project planner. Create a detailed, actionable 90-day plan to achieve the following goal:
-    "${goal}"
-
-    Structure the plan rigorously using the following Markdown format:
-
-    # Goal: [Restate the User's Goal Here]
-
-    ## Month 1: [Concise Milestone Title for Month 1]
-    ### Week 1: [Objective Title for Week 1 of Month 1]
-    - Day 1: [Specific, actionable task for Day 1]
-    - Day 2: [Specific, actionable task for Day 2]
-    - Day 3: [Specific, actionable task for Day 3]
-    - Day 4: [Specific, actionable task for Day 4]
-    - Day 5: [Specific, actionable task for Day 5]
-    - Day 6: [Specific, actionable task for Day 6]
-    - Day 7: [Specific, actionable task for Day 7]
-    ### Week 2: [Objective Title for Week 2 of Month 1]
-    - Day 1: [Task...]
-    ... (Repeat for all 7 days)
-    ### Week 3: [Objective Title for Week 3 of Month 1]
-    ... (Repeat for all 7 days)
-    ### Week 4: [Objective Title for Week 4 of Month 1]
-    ... (Repeat for all 7 days)
-
-    ## Month 2: [Concise Milestone Title for Month 2]
-    ### Week 1: [Objective Title for Week 1 of Month 2]
-    ... (Repeat structure for 4 weeks and 7 days/week)
-
-    ## Month 3: [Concise Milestone Title for Month 3]
-    ### Week 1: [Objective Title for Week 1 of Month 3]
-    ... (Repeat structure for 4 weeks and 7 days/week)
-
-    Ensure every day within every week has a task assigned. Use the exact headings (# Goal:, ## Month <number>:, ### Week <number>:, - Day <number>:) as shown.
-  `;
-
-  const messages = [
-    { role: "system", content: "You are an expert project planner." },
-    { role: "user", content: prompt }
-  ];
 
   try {
     console.log(`[Server] Received /api/generate-plan request for goal: "${goal.substring(0, 50)}..."`);
-    const response = await client.chat.completions.create({
-      model: MODEL_NAME,
-      messages: messages,
-    });
+    
+    const fullPrompt = `You are an expert project planner. Create a detailed, actionable 90-day plan to achieve the following goal:
+"${goal}"
 
-    const content = response.choices[0]?.message?.content;
+Structure the plan rigorously using the following Markdown format:
+
+# Goal: [Restate the User's Goal Here]
+
+## Month 1: [Concise Milestone Title for Month 1]
+### Week 1: [Objective Title for Week 1 of Month 1]
+- Day 1: [Specific, actionable task for Day 1]
+- Day 2: [Specific, actionable task for Day 2]
+- Day 3: [Specific, actionable task for Day 3]
+- Day 4: [Specific, actionable task for Day 4]
+- Day 5: [Specific, actionable task for Day 5]
+- Day 6: [Specific, actionable task for Day 6]
+- Day 7: [Specific, actionable task for Day 7]
+### Week 2: [Objective Title for Week 2 of Month 1]
+- Day 1: [Task...]
+... (Repeat for all 7 days)
+### Week 3: [Objective Title for Week 3 of Month 1]
+... (Repeat for all 7 days)
+### Week 4: [Objective Title for Week 4 of Month 1]
+... (Repeat for all 7 days)
+
+## Month 2: [Concise Milestone Title for Month 2]
+### Week 1: [Objective Title for Week 1 of Month 2]
+... (Repeat structure for 4 weeks and 7 days/week)
+
+## Month 3: [Concise Milestone Title for Month 3]
+### Week 1: [Objective Title for Week 1 of Month 3]
+... (Repeat structure for 4 weeks and 7 days/week)
+
+Ensure every day within every week has a task assigned. Use the exact headings (# Goal:, ## Month <number>:, ### Week <number>:, - Day <number>:) as shown.`;
+
+    // Use plan generation specific configuration
+    const result = await model.generateContent(fullPrompt, {
+      generationConfig: {
+        temperature: GEMINI_CONFIG.planGeneration.temperature,
+        topK: GEMINI_CONFIG.planGeneration.topK,
+        topP: GEMINI_CONFIG.planGeneration.topP,
+        maxOutputTokens: GEMINI_CONFIG.maxOutputTokens,
+        frequencyPenalty: GEMINI_CONFIG.frequencyPenalty,
+        presencePenalty: GEMINI_CONFIG.presencePenalty,
+        thinkingConfig: {
+          includeThoughts: GEMINI_CONFIG.thinkingConfig.includeThoughts,
+          thinkingBudget: GEMINI_CONFIG.planGeneration.thinkingBudget
+        }
+      }
+    });
+    const response = await result.response;
+    const content = response.text();
+    
     if (!content) {
       throw new Error("No content received from AI.");
     }
-    console.log("[Server] Successfully received plan from Requesty.ai.");
+    console.log("[Server] Successfully received plan from Google AI Studio.");
     res.json({ plan: content }); // Send the plan back to the client
 
   } catch (error) {
-    console.error("[Server] Error calling Requesty.ai API (generatePlan):", error);
+    console.error("[Server] Error calling Google AI Studio API (generatePlan):", error);
     res.status(500).json({ error: 'Failed to generate plan from AI service.' });
   }
 });
@@ -132,36 +182,101 @@ app.post('/api/chat', async (req, res) => {
         systemPrompt = "You are a helpful assistant helping a user define a 90-day goal. Ask clarifying questions if the goal is unclear, otherwise confirm you understand.";
     }
 
-    // Convert history to OpenAI format (model -> assistant)
-    let currentUserMessageContent = message;
+    // Build conversation history for Gemini
+    let conversationHistory = [];
+    
+    // Add history if exists - ensure it starts with 'user' role
+    if (history && history.length > 0) {
+      conversationHistory = history.map(msg => ({
+        role: msg.role === 'model' ? 'model' : 'user',
+        parts: [{ text: msg.parts }]
+      }));
+      
+      // Ensure the first message is from user, if not, skip or adjust
+      if (conversationHistory.length > 0 && conversationHistory[0].role !== 'user') {
+        // If first message is not from user, we'll use generateContent instead
+        conversationHistory = [];
+      }
+    }
 
     // --- Add Formatting Reminder to User Message if Refining Plan ---
+    let currentUserMessageContent = message;
     const formattingReminder = `\n\n[SYSTEM REMINDER: If you are updating the plan based on this message, your response MUST be ONLY the complete, revised plan in the required Markdown format, starting directly with "# Goal:". NO other text is allowed.]`;
     if (plan) {
         currentUserMessageContent += formattingReminder;
         console.log('[Server] Added formatting reminder to user message.');
     }
-    
-    const messages = [
-      { role: 'system', content: systemPrompt },
-      ...(history || []).map((msg) => ({
-        role: msg.role === 'model' ? 'assistant' : 'user',
-        content: msg.parts
-      })),
-      { role: 'user', content: currentUserMessageContent }
-    ];
 
-    const response = await client.chat.completions.create({
-      model: MODEL_NAME,
-      messages: messages,
-    });
+    // Combine system prompt with user message for Gemini
+    const fullPrompt = `${systemPrompt}\n\nUser: ${currentUserMessageContent}`;
 
-        let finalContent = response.choices[0]?.message?.content;
-        if (!finalContent) {
-          throw new Error("No content received from AI chat.");
+    // Start a chat session if there's valid history, otherwise use generateContent
+    let finalContent;
+    if (conversationHistory.length > 0) {
+      try {
+        const chat = model.startChat({
+          history: conversationHistory,
+        });
+        const result = await chat.sendMessage(currentUserMessageContent, {
+          generationConfig: {
+            temperature: GEMINI_CONFIG.chatGeneration.temperature,
+            topK: GEMINI_CONFIG.chatGeneration.topK,
+            topP: GEMINI_CONFIG.chatGeneration.topP,
+            maxOutputTokens: GEMINI_CONFIG.maxOutputTokens,
+            frequencyPenalty: GEMINI_CONFIG.frequencyPenalty,
+            presencePenalty: GEMINI_CONFIG.presencePenalty,
+            thinkingConfig: {
+              includeThoughts: GEMINI_CONFIG.thinkingConfig.includeThoughts,
+              thinkingBudget: GEMINI_CONFIG.chatGeneration.thinkingBudget
+            }
+          }
+        });
+        const response = await result.response;
+        finalContent = response.text();
+      } catch (historyError) {
+        console.log('[Server] Chat history validation failed, falling back to generateContent:', historyError.message);
+        // Fallback to generateContent if history is invalid
+        const result = await model.generateContent(fullPrompt, {
+          generationConfig: {
+            temperature: GEMINI_CONFIG.chatGeneration.temperature,
+            topK: GEMINI_CONFIG.chatGeneration.topK,
+            topP: GEMINI_CONFIG.chatGeneration.topP,
+            maxOutputTokens: GEMINI_CONFIG.maxOutputTokens,
+            frequencyPenalty: GEMINI_CONFIG.frequencyPenalty,
+            presencePenalty: GEMINI_CONFIG.presencePenalty,
+            thinkingConfig: {
+              includeThoughts: GEMINI_CONFIG.thinkingConfig.includeThoughts,
+              thinkingBudget: GEMINI_CONFIG.chatGeneration.thinkingBudget
+            }
+          }
+        });
+        const response = await result.response;
+        finalContent = response.text();
+      }
+    } else {
+      const result = await model.generateContent(fullPrompt, {
+        generationConfig: {
+          temperature: GEMINI_CONFIG.chatGeneration.temperature,
+          topK: GEMINI_CONFIG.chatGeneration.topK,
+          topP: GEMINI_CONFIG.chatGeneration.topP,
+          maxOutputTokens: GEMINI_CONFIG.maxOutputTokens,
+          frequencyPenalty: GEMINI_CONFIG.frequencyPenalty,
+          presencePenalty: GEMINI_CONFIG.presencePenalty,
+          thinkingConfig: {
+            includeThoughts: GEMINI_CONFIG.thinkingConfig.includeThoughts,
+            thinkingBudget: GEMINI_CONFIG.chatGeneration.thinkingBudget
+          }
         }
-    
-        console.log("[Server] Successfully received chat response from Requesty.ai.");
+      });
+      const response = await result.response;
+      finalContent = response.text();
+    }
+
+    if (!finalContent) {
+      throw new Error("No content received from AI chat.");
+    }
+
+    console.log("[Server] Successfully received chat response from Google AI Studio.");
     
         // --- Attempt to extract Markdown plan if refining ---
         if (plan && finalContent.includes('# Goal:')) { // Check if plan context existed AND '# Goal:' is in the response
@@ -186,7 +301,7 @@ app.post('/api/chat', async (req, res) => {
         res.json({ response: finalContent }); // Send the (potentially modified) response back
 
   } catch (error) {
-    console.error("[Server] Error calling Requesty.ai API (chat):", error);
+    console.error("[Server] Error calling Google AI Studio API (chat):", error);
     res.status(500).json({ error: 'Failed to get chat response from AI service.' });
   }
 });

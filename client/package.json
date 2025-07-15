@@ -3,14 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@google/generative-ai": "^0.24.0",
+    "@google/generative-ai": "^0.24.1",
+    "@supabase/supabase-js": "^2.51.0",
     "@testing-library/dom": "^10.4.0",
     "@types/node": "^16.18.126",
-    "@types/react": "^19.1.2",
-    "@types/react-dom": "^19.1.2",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
     "@types/react-modal": "^3.16.3",
-    "firebase": "^11.6.0",
-    "openai": "^4.95.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-hot-toast": "^2.5.2",
@@ -23,10 +22,10 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "start": "bun run react-scripts start",
+    "build": "bun run react-scripts build",
+    "test": "bun run react-scripts test",
+    "eject": "bun run react-scripts eject"
   },
   "eslintConfig": {
     "extends": [

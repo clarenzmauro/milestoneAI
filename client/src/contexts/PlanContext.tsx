@@ -2,8 +2,8 @@ import React, { createContext, useState, useContext, ReactNode } from 'react';
 import { generatePlan as apiGeneratePlan } from '../services/aiService';
 import { FullPlan } from '../types/planTypes';
 import { parsePlanString } from '../utils/planParser';
-import { useAuth } from './AuthContext';
-import { savePlan } from '../services/firestoreService';
+import { useAuth } from './SupabaseAuthContext';
+import { savePlan } from '../services/supabaseService';
 import { ChatMessage } from '../types/chatTypes';
 import { InteractionMode } from '../types/generalTypes';
 import { checkAndUnlockAchievements } from '../services/achievementService';
@@ -83,8 +83,8 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
                 interactionMode: interactionMode,
             };
           try {
-            console.log('[PlanContext] Auto-saving newly generated plan for user:', user.uid);
-            await savePlan(user.uid, planToSave);
+            console.log('[PlanContext] Auto-saving newly generated plan for user:', user.id);
+            await savePlan(user.id, planToSave);
             console.log('[PlanContext] Auto-save successful.');
           } catch (saveError) {
             console.error('[PlanContext] Auto-save failed:', saveError);
@@ -149,8 +149,8 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
                 interactionMode: interactionMode,
             };
           try {
-            console.log('[PlanContext] Auto-saving updated plan for user:', user.uid);
-            await savePlan(user.uid, planToSave);
+            console.log('[PlanContext] Auto-saving updated plan for user:', user.id);
+            await savePlan(user.id, planToSave);
             console.log('[PlanContext] Updated plan auto-save successful.');
           } catch (saveError) {
             console.error('[PlanContext] Updated plan auto-save failed:', saveError);
@@ -217,7 +217,7 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
 
     console.log(`[PlanContext] Attempting to save current plan (${planToSave.goal}) with mode: ${planToSave.interactionMode}`);
     try {
-      await savePlan(user.uid, planToSave);
+      await savePlan(user.id, planToSave);
       console.log('[PlanContext] Current plan state saved successfully.');
     } catch (saveError) {
       console.error('[PlanContext] Failed to save current plan state:', saveError);
@@ -286,8 +286,8 @@ export const PlanProvider: React.FC<PlanProviderProps> = ({ children }) => {
           interactionMode: currentInteractionMode,
       };
       try {
-          console.log('[PlanContext] Saving plan after task toggle for user:', user.uid);
-          await savePlan(user.uid, planToSave);
+          console.log('[PlanContext] Saving plan after task toggle for user:', user.id);
+          await savePlan(user.id, planToSave);
           console.log('[PlanContext] Saved plan after task toggle.');
           // Save successful, optimistic update is now confirmed
       } catch (saveError) {
