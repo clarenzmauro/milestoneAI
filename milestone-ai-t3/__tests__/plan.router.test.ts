@@ -22,13 +22,8 @@ const mockPrismaClient = {
   $queryRawUnsafe: vi.fn(),
 } as any;
 
-// Mock the database module
-vi.mock('../src/server/db', () => ({
-  db: mockPrismaClient,
-}));
-
-// Now import the router after mocking the database
-const { planRouter } = await import('../src/server/api/routers/plan');
+// Import the router
+import { planRouter } from '~/server/api/routers/plan';
 
 // Mock Supabase User type
 const createMockUser = (userId: string = 'test-user-id') => ({
@@ -133,8 +128,13 @@ describe('planRouter', () => {
     });
 
     it('should throw TRPCError when database operation fails', async () => {
-      const dbError = new Error('Database error');
-      mockPrismaClient.plan.create.mockRejectedValue(dbError);
+      // Clear all mocks and set up fresh ones for this test
+      vi.clearAllMocks();
+      mockContext = createMockContext();
+      caller = planRouter.createCaller(mockContext);
+      
+      // Use a simple string rejection instead of Error object
+      mockPrismaClient.plan.create.mockRejectedValue('Database error');
 
       await expect(caller.create(mockCreatePlanInput)).rejects.toThrow(TRPCError);
       await expect(caller.create(mockCreatePlanInput)).rejects.toMatchObject({
@@ -197,8 +197,13 @@ describe('planRouter', () => {
     });
 
     it('should throw TRPCError when database operation fails', async () => {
-      const dbError = new Error('Database error');
-      mockPrismaClient.plan.findMany.mockRejectedValue(dbError);
+      // Clear all mocks and set up fresh ones for this test
+      vi.clearAllMocks();
+      mockContext = createMockContext();
+      caller = planRouter.createCaller(mockContext);
+      
+      // Use a simple string rejection instead of Error object
+      mockPrismaClient.plan.findMany.mockRejectedValue('Database error');
 
       await expect(caller.getAll()).rejects.toThrow(TRPCError);
       await expect(caller.getAll()).rejects.toMatchObject({
@@ -234,8 +239,13 @@ describe('planRouter', () => {
     });
 
     it('should throw TRPCError when database operation fails', async () => {
-      const dbError = new Error('Database error');
-      mockPrismaClient.plan.findFirst.mockRejectedValue(dbError);
+      // Clear all mocks and set up fresh ones for this test
+      vi.clearAllMocks();
+      mockContext = createMockContext();
+      caller = planRouter.createCaller(mockContext);
+      
+      // Use a simple string rejection instead of Error object
+      mockPrismaClient.plan.findFirst.mockRejectedValue('Database error');
 
       await expect(caller.getById({ id: 'clp1a2b3c4d5e6f7g8h9i0j1' })).rejects.toThrow(TRPCError);
       await expect(caller.getById({ id: 'clp1a2b3c4d5e6f7g8h9i0j1' })).rejects.toMatchObject({
@@ -535,8 +545,13 @@ describe('planRouter', () => {
     });
 
     it('should throw TRPCError when database operation fails', async () => {
-      const dbError = new Error('Database error');
-      mockPrismaClient.plan.count.mockRejectedValue(dbError);
+      // Clear all mocks and set up fresh ones for this test
+      vi.clearAllMocks();
+      mockContext = createMockContext();
+      caller = planRouter.createCaller(mockContext);
+      
+      // Use a simple string rejection instead of Error object
+      mockPrismaClient.plan.count.mockRejectedValue('Database error');
 
       await expect(caller.getStats()).rejects.toThrow(TRPCError);
       await expect(caller.getStats()).rejects.toMatchObject({
