@@ -1,48 +1,48 @@
 "use client";
 
 import { useState } from "react";
-
 import { api } from "~/trpc/react";
 
-export function LatestPost() {
-  const [latestPost] = api.post.getLatest.useSuspenseQuery();
+export function LatestPlan() {
+  const [plans] = api.plan.getAll.useSuspenseQuery();
+  const latestPlan = plans[0];
 
   const utils = api.useUtils();
-  const [name, setName] = useState("");
-  const createPost = api.post.create.useMutation({
+  const [goal, setGoal] = useState("");
+  const createPlan = api.plan.create.useMutation({
     onSuccess: async () => {
-      await utils.post.invalidate();
-      setName("");
+      await utils.plan.invalidate();
+      setGoal("");
     },
   });
 
   return (
     <div className="w-full max-w-xs">
-      {latestPost ? (
-        <p className="truncate">Your most recent post: {latestPost.name}</p>
+      {latestPlan ? (
+        <p className="truncate">Your most recent plan: {latestPlan.goal}</p>
       ) : (
-        <p>You have no posts yet.</p>
+        <p>You have no plans yet.</p>
       )}
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          createPost.mutate({ name });
+          createPlan.mutate({ goal });
         }}
         className="flex flex-col gap-2"
       >
         <input
           type="text"
-          placeholder="Title"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
+          placeholder="Plan goal"
+          value={goal}
+          onChange={(e) => setGoal(e.target.value)}
           className="w-full rounded-full bg-white/10 px-4 py-2 text-white"
         />
         <button
           type="submit"
           className="rounded-full bg-white/10 px-10 py-3 font-semibold transition hover:bg-white/20"
-          disabled={createPost.isPending}
+          disabled={createPlan.isPending}
         >
-          {createPost.isPending ? "Submitting..." : "Submit"}
+          {createPlan.isPending ? "Creating..." : "Create Plan"}
         </button>
       </form>
     </div>
