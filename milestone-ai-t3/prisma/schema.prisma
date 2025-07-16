@@ -18,3 +18,24 @@ model Post {
 
     @@index([name])
 }
+
+model Plan {
+    id                String   @id @default(cuid())
+    userId            String   @map("user_id")
+    goal              String
+    summary           String?
+    timeline          String?
+    monthlyMilestones Json?    @map("monthly_milestones")
+    weeklyObjectives  Json?    @map("weekly_objectives")
+    dailyTasks        Json?    @map("daily_tasks")
+    achievements      Json     @default("[]")
+    chatHistory     Json     @default("[]") @map("chat_history")
+    interactionMode String   @default("chat") @map("interaction_mode")
+    createdAt       DateTime @default(now()) @map("created_at")
+    updatedAt       DateTime @updatedAt @map("updated_at")
+
+    @@map("plans")
+    @@index([userId])
+    @@index([goal])
+    @@index([createdAt])
+}
